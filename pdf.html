@@ -88,6 +88,15 @@
 			}
 
 			#text-layer > div {
+				background-color: transparent;
+				color: transparent;
+				position: absolute;
+				white-space: pre;
+				cursor: text;
+				transform-origin: 0% 0%;
+			}
+			#text-layer > div:hover {
+				background-color: blue;
 				color: transparent;
 				position: absolute;
 				white-space: pre;
@@ -145,8 +154,27 @@
 				__CANVAS = $("#pdf-canvas").get(0),
 				__CANVAS_CTX = __CANVAS.getContext("2d");
 
-			// Define a function to start text-to-speech
-			function startTextToSpeech() {
+			function highlightWord(word, viewport) {
+				let textDivs = document.querySelectorAll(".textLayer > div");
+				for (let i = 0; i < textDivs.length; i++) {
+					let textDiv = textDivs[i];
+					if (textDiv.textContent.trim() === word.trim()) {
+						// Add click event listener to the word element
+						textDiv.addEventListener("click", function () {
+							startTextToSpeech(word);
+						});
+						textDiv.classList.add("highlight");
+						scrollIntoView(textDiv, viewport);
+					} else {
+						textDiv.classList.remove("highlight");
+					}
+				}
+			}
+
+			function startTextToSpeech(startWord) {
+				if (synth.speaking) {
+					synth.cancel();
+				}
 				// Get the text content of the PDF
 				let textContent = "";
 				__PDF_DOC
@@ -161,10 +189,14 @@
 								return item.str;
 							})
 							.join(" ");
-
-						// Set the text to the utterance
-						utterance.text = textContent;
-
+						if (startWord) {
+							// If a start word is specified, find its position in the text and update the utterance
+							let startIndex = textContent.indexOf(startWord);
+							utterance.text = textContent.slice(startIndex);
+						} else {
+							// Otherwise, set the text to the utterance
+							utterance.text = textContent;
+						}
 						// Start the text-to-speech feature
 						synth.speak(utterance);
 						console.log("here");
@@ -184,7 +216,7 @@
 			function showPDF(pdf_url) {
 				$("#pdf-loader").show();
 
-				PDFJS.getDocument({ url: pdf_url })
+				let loadingTask = PDFJS.getDocument({ url: pdf_url })
 					.then(function (pdf_doc) {
 						__PDF_DOC = pdf_doc;
 						__TOTAL_PAGES = __PDF_DOC.numPages;
@@ -196,6 +228,26 @@
 
 						// Show the first page
 						showPage(1);
+						// Add click event listeners to each word in the text layer
+						$("#text-layer").on("click", "div", function () {
+							// Get the clicked word's text content
+							const clickedWord = $(this).text().trim();
+							// Get the text content of the rest of the page
+							const nextPageWords = $(this)
+								.nextAll("div")
+								.map(function () {
+									return $(this).text().trim();
+								})
+								.get()
+								.join(" ");
+							// Set the text to the utterance
+							if (synth.speaking) {
+								synth.cancel();
+							}
+							utterance.text = clickedWord + " " + nextPageWords;
+							// Start the text-to-speech feature
+							synth.speak(utterance);
+						});
 					})
 					.catch(function (error) {
 						// If error re-show the upload button
@@ -204,6 +256,10 @@
 
 						alert(error.message);
 					});
+
+				loadingTask.onProgress = function (progress) {
+					var percent_loaded = (progress.loaded / progress.total) * 100;
+				};
 			}
 
 			function showPage(page_no) {
@@ -266,7 +322,6 @@
 								height: __CANVAS.height + "px",
 								width: __CANVAS.width + "px",
 							});
-
 							// Pass the data to the method for rendering of text over the pdf canvas.
 							PDFJS.renderTextLayer({
 								textContent: textContent,
