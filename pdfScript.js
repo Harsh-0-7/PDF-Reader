@@ -71,6 +71,7 @@ function startTextToSpeech(startWord, viewport) {
 				console.log(wordId);
 				// highlightWord(wordId, viewport);
 			};
+			resume();
 		});
 }
 function showPDF(pdf_url) {
@@ -108,6 +109,7 @@ function showPDF(pdf_url) {
 				utterance.text = clickedWord + " " + nextPageWords;
 				// Start the text-to-speech feature
 				synth.speak(utterance);
+				resume();
 			});
 		})
 		.catch(function (error) {
@@ -198,6 +200,8 @@ function showPage(page_no) {
 // This is better than showing the not-good-looking file input element
 $("#upload-button").on("click", function () {
 	$("#file-to-upload").trigger("click");
+	$("#pause-button").hide();
+	$("#resume-button").hide();
 });
 
 // When user chooses a PDF file
@@ -216,12 +220,26 @@ $("#file-to-upload").on("change", function () {
 	showPDF(URL.createObjectURL($("#file-to-upload").get(0).files[0]));
 });
 
-// Previous page of the PDF
-$("#pdf-prev").on("click", function () {
-	if (__CURRENT_PAGE != 1) showPage(--__CURRENT_PAGE);
-});
+function prevPage() {
+	if (__CURRENT_PAGE != 1) {
+		showPage(--__CURRENT_PAGE);
+	}
+}
 
-// Next page of the PDF
-$("#pdf-next").on("click", function () {
-	if (__CURRENT_PAGE != __TOTAL_PAGES) showPage(++__CURRENT_PAGE);
-});
+function nextPage() {
+	if (__CURRENT_PAGE != __TOTAL_PAGES) {
+		showPage(++__CURRENT_PAGE);
+	}
+}
+
+function resume() {
+	$("#resume-button").hide();
+	$("#pause-button").show();
+	if (!synth.paused) synth.resume();
+}
+
+function pause() {
+	$("#pause-button").hide();
+	$("#resume-button").show();
+	if (synth.speaking) synth.pause();
+}

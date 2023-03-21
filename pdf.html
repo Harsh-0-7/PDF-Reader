@@ -32,13 +32,30 @@
 			<div id="pdf-contents">
 				<div id="pdf-meta">
 					<div id="pdf-buttons">
-						<button id="pdf-prev">Previous</button>
-						<button id="pdf-next">Next</button>
 						<button
-							id="text-to-speech-button"
-							onclick="startTextToSpeech()"
+							id="pdf-prev"
+							onclick="prevPage()"
 						>
-							Text to Speech
+							Previous
+						</button>
+						<button
+							id="pdf-next"
+							onclick="nextPage()"
+						>
+							Next
+						</button>
+						<button onclick="startTextToSpeech()">Text to Speech</button>
+						<button
+							id="resume-button"
+							onclick="resume()"
+						>
+							Resume
+						</button>
+						<button
+							id="pause-button"
+							onclick="pause()"
+						>
+							Pause
 						</button>
 					</div>
 					<div id="page-count-container">
@@ -50,7 +67,7 @@
 				</div>
 				<canvas
 					id="pdf-canvas"
-					width="1500"
+					width="1000"
 				></canvas>
 				<div id="text-layer"></div>
 				<div id="page-loader">Loading page ...</div>
