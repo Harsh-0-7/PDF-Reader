@@ -23,11 +23,11 @@ let __PDF_DOC,
 function highlightWord(wordId, viewport) {
 	let textDiv = document.getElementById(wordId);
 	if (textDiv) {
-		console.log("Added", wordId, textDiv);
+		// console.log("Added", wordId, textDiv);
 		textDiv.classList.add("highlight");
 		// scrollIntoView(textDiv, viewport);
 	} else {
-		console.log("not found", wordId);
+		// console.log("not found", wordId);
 	}
 }
 function startTextToSpeech(startWord, viewport) {
@@ -35,13 +35,13 @@ function startTextToSpeech(startWord, viewport) {
 		synth.cancel();
 	}
 
-	let textDivs = document.querySelectorAll("#text-layer > div");
-	console.log(textDivs);
-	// let charcount = 0;
-	for (let i = 0; i < textDivs.length; i++) {
-		textDivs[i].id = `text-${__CURRENT_PAGE}-${i}`;
-		// charcount += element.innerHTML.length;
-	}
+	// let textDivs = document.querySelectorAll("#text-layer > div");
+	// console.log(textDivs);
+	// // let charcount = 0;
+	// for (let i = 0; i < textDivs.length; i++) {
+	// 	textDivs[i].id = `text-${__CURRENT_PAGE}-${i}`;
+	// 	// charcount += element.innerHTML.length;
+	// }
 	let textContent = "";
 	__PDF_DOC
 		.getPage(__CURRENT_PAGE)
@@ -62,16 +62,19 @@ function startTextToSpeech(startWord, viewport) {
 			}
 			synth.speak(utterance);
 			utterance.onboundary = function (event) {
-				console.log(event);
+				// console.log(event);
 				// let word = event.target.text.slice(
 				// 	event.charIndex,
 				// 	event.charIndex + event.charLength
 				// );
 				let wordId = `text-${__CURRENT_PAGE}-${event.charIndex}`;
-				console.log(wordId);
+				// console.log(wordId);
 				// highlightWord(wordId, viewport);
 			};
 			resume();
+		})
+		.catch(function (error) {
+			console.log(error);
 		});
 }
 function showPDF(pdf_url) {
@@ -243,3 +246,7 @@ function pause() {
 	$("#resume-button").show();
 	if (synth.speaking) synth.pause();
 }
+
+window.onbeforeunload = function () {
+	synth.cancel();
+};
