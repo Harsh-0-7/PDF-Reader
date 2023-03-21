@@ -1,3 +1,6 @@
+How to Use?
+Open pdf.html (Need Internet for read aloud feature)
+
 To-do:
 1. Auto Scroll to new page,while reading
 2. Skip Header/footers,vertical text,remove \u0000 ,(...some text)
