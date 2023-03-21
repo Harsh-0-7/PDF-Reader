@@ -56,9 +56,9 @@ function startTextToSpeech(startWord, viewport) {
 				.join(" ");
 			if (startWord) {
 				let startIndex = textContent.indexOf(startWord);
-				utterance.text = textContent.slice(startIndex);
+				utterance.text = refineText(textContent.slice(startIndex));
 			} else {
-				utterance.text = textContent;
+				utterance.text = refineText(textContent);
 			}
 			synth.speak(utterance);
 			utterance.onboundary = function (event) {
@@ -109,7 +109,7 @@ function showPDF(pdf_url) {
 				if (synth.speaking) {
 					synth.cancel();
 				}
-				utterance.text = clickedWord + " " + nextPageWords;
+				utterance.text = refineText(clickedWord + " " + nextPageWords);
 				// Start the text-to-speech feature
 				synth.speak(utterance);
 				resume();
@@ -250,3 +250,8 @@ function pause() {
 window.onbeforeunload = function () {
 	synth.cancel();
 };
+
+function refineText(text) {
+	let newText = text.replace(/\x00/g, "");
+	return newText;
+}
