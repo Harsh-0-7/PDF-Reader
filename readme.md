@@ -2,6 +2,10 @@
 
 ![Demo Image](Demo.jpeg)
 
+Main feature of this reader is to use read aloud feature for free.
+
+Right now only pdf format is supported.
+
 ## How to Use?
 
 - Open pdf.html
@@ -10,18 +14,13 @@
 
 ## Todo:
 
-1. Auto Scroll to new page,while reading
-2. Skip Header/footers,vertical text,text in brackets
-3. Refactor Code
-4. Highlight word/sentence which is being spoken
-5. Add Auto Scroll Button
-6. Make responsive
-7. Add Resize Page Buttons
-8. Dark Mode
-9. Add more formats
-10. Create Extension
-11. Add More Voices
-12. ??
+1. Skip Header/footers,vertical text,text in brackets
+2. Highlight word/sentence which is being spoken
+3. Make responsive
+4. Add Resize Page Buttons
+5. Create Extension
+6. Create Mobile App
+7. ??
 
 ## Contribute to development
 

@@ -16,7 +16,7 @@
 			rel="stylesheet"
 			href="./pdf.css"
 		/>
-		<title>Pdf Reader For Linux</title>
+		<title>Book Reader</title>
 	</head>
 
 	<body>
@@ -30,21 +30,15 @@
 		<div id="pdf-main-container">
 			<div id="pdf-loader">Loading document ...</div>
 			<div id="pdf-contents">
-				<div id="pdf-meta">
+				<div
+					id="pdf-meta"
+					class="navBar"
+				>
+					<select id="voiceSelect"></select>
+
 					<div id="pdf-buttons">
-						<button
-							id="pdf-prev"
-							onclick="prevPage()"
-						>
-							Previous
-						</button>
-						<button
-							id="pdf-next"
-							onclick="nextPage()"
-						>
-							Next
-						</button>
 						<button onclick="startTextToSpeech()">Read Aloud</button>
+						<button onclick="scroll()">Scroll</button>
 						<button
 							id="resume-button"
 							onclick="resume()"
@@ -60,16 +54,12 @@
 					</div>
 					<div id="page-count-container">
 						Page
-						<div id="pdf-current-page"></div>
+						<div id="pdf-current-page">1</div>
 						of
 						<div id="pdf-total-pages"></div>
 					</div>
 				</div>
-				<canvas
-					id="pdf-canvas"
-					width="1000"
-				></canvas>
-				<div id="text-layer"></div>
+				<div id="pdfContainer"></div>
 				<div id="page-loader">Loading page ...</div>
 			</div>
 		</div>

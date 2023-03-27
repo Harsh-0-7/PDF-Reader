@@ -1,47 +1,50 @@
 let synth = window.speechSynthesis;
 let utterance = new SpeechSynthesisUtterance();
 let __PDF_DOC,
-	__CURRENT_PAGE,
+	__CURRENT_PAGE = 1,
 	__TOTAL_PAGES,
-	__PAGE_RENDERING_IN_PROGRESS = 0,
-	__CANVAS = $("#pdf-canvas").get(0),
-	__CANVAS_CTX = __CANVAS.getContext("2d");
+	__PAGE_RENDERING_IN_PROGRESS = 0;
 
-// function highlightWord(word, viewport) {
-// 	console.log(word, viewport);
-// 	let textDivs = document.querySelectorAll(".textLayer > div");
-// 	for (const element of textDivs) {
-// 		let textDiv = element;
-// 		if (textDiv.textContent.trim() === word.trim()) {
-// 			textDiv.classList.add("highlight");
-// 			scrollIntoView(textDiv, viewport);
-// 		} else {
-// 			textDiv.classList.remove("highlight");
-// 		}
-// 	}
-// }
-function highlightWord(wordId, viewport) {
-	let textDiv = document.getElementById(wordId);
-	if (textDiv) {
-		// console.log("Added", wordId, textDiv);
-		textDiv.classList.add("highlight");
-		// scrollIntoView(textDiv, viewport);
-	} else {
-		// console.log("not found", wordId);
+let canvas_width = 1000;
+
+function scroll() {
+	document.getElementById("textLayer" + __CURRENT_PAGE).scrollIntoView();
+	console.log(document.getElementById("textLayer" + __CURRENT_PAGE));
+}
+function populateVoiceList() {
+	if (typeof synth === "undefined") {
+		return;
 	}
+
+	const voices = synth.getVoices();
+
+	for (const element of voices) {
+		const option = document.createElement("option");
+		option.textContent = `${element.name} (${element.lang})`;
+
+		if (element.default) {
+			option.textContent += " — DEFAULT";
+		}
+
+		option.setAttribute("data-lang", element.lang);
+		option.setAttribute("data-name", element.name);
+		document.getElementById("voiceSelect").appendChild(option);
+	}
+}
+if (typeof synth !== "undefined" && synth.onvoiceschanged !== undefined) {
+	synth.onvoiceschanged = populateVoiceList;
 }
 function startTextToSpeech(startWord, viewport) {
 	if (synth.speaking) {
 		synth.cancel();
 	}
+	let voices = synth.getVoices();
 
-	// let textDivs = document.querySelectorAll("#text-layer > div");
-	// console.log(textDivs);
-	// // let charcount = 0;
-	// for (let i = 0; i < textDivs.length; i++) {
-	// 	textDivs[i].id = `text-${__CURRENT_PAGE}-${i}`;
-	// 	// charcount += element.innerHTML.length;
-	// }
+	let selectedVoice =
+		voices[document.getElementById("voiceSelect").selectedIndex];
+	if (selectedVoice !== null) {
+		utterance.voice = selectedVoice;
+	}
 	let textContent = "";
 	__PDF_DOC
 		.getPage(__CURRENT_PAGE)
@@ -60,27 +63,26 @@ function startTextToSpeech(startWord, viewport) {
 			} else {
 				utterance.text = refineText(textContent);
 			}
-			synth.speak(utterance);
-			utterance.onboundary = function (event) {
-				// console.log(event);
-				// let word = event.target.text.slice(
-				// 	event.charIndex,
-				// 	event.charIndex + event.charLength
-				// );
-				let wordId = `text-${__CURRENT_PAGE}-${event.charIndex}`;
-				// console.log(wordId);
-				// highlightWord(wordId, viewport);
+			utterance.onend = function () {
+				if (__CURRENT_PAGE != __TOTAL_PAGES) {
+					__CURRENT_PAGE++;
+					startTextToSpeech();
+					scroll();
+				}
 			};
+			synth.speak(utterance);
+
 			resume();
 		})
 		.catch(function (error) {
 			console.log(error);
 		});
 }
+
 function showPDF(pdf_url) {
 	$("#pdf-loader").show();
 
-	let loadingTask = PDFJS.getDocument({ url: pdf_url })
+	PDFJS.getDocument({ url: pdf_url })
 		.then(function (pdf_doc) {
 			__PDF_DOC = pdf_doc;
 			__TOTAL_PAGES = __PDF_DOC.numPages;
@@ -89,31 +91,58 @@ function showPDF(pdf_url) {
 			$("#pdf-loader").hide();
 			$("#pdf-contents").show();
 			$("#pdf-total-pages").text(__TOTAL_PAGES);
+			let canvas, textLayer;
+			for (let i = 1; i <= __TOTAL_PAGES; i++) {
+				canvas = document.createElement("canvas");
+				canvas.id = "page" + i;
+				canvas.width = canvas_width;
+				textLayer = document.createElement("div");
+				textLayer.id = "textLayer" + i;
+				canvas.classList.add("canvas");
+				textLayer.classList.add("textLayer");
 
-			// Show the first page
-			showPage(1);
+				document.getElementById("pdfContainer").appendChild(canvas);
+				document.getElementById("pdfContainer").appendChild(textLayer);
 
-			// Add click event listeners to each word in the text layer
-			$("#text-layer").on("click", "div", function () {
-				// Get the clicked word's text content
-				const clickedWord = $(this).text().trim();
-				// Get the text content of the rest of the page
-				const nextPageWords = $(this)
-					.nextAll("div")
-					.map(function () {
-						return $(this).text().trim();
-					})
-					.get()
-					.join(" ");
-				// Set the text to the utterance
-				if (synth.speaking) {
-					synth.cancel();
-				}
-				utterance.text = refineText(clickedWord + " " + nextPageWords);
-				// Start the text-to-speech feature
-				synth.speak(utterance);
-				resume();
-			});
+				showPage(i, canvas, canvas.getContext("2d"));
+				// Add click event listeners to each word in the text layer
+				$("#textLayer" + i).on("click", "div", function () {
+					// Get the clicked word's text content
+					__CURRENT_PAGE = i;
+					const clickedWord = $(this).text().trim();
+					// Get the text content of the rest of the page
+					const nextPageWords = $(this)
+						.nextAll("div")
+						.map(function () {
+							return $(this).text().trim();
+						})
+						.get()
+						.join(" ");
+					// Set the text to the utterance
+					if (synth.speaking) {
+						synth.cancel();
+					}
+					let voices = synth.getVoices();
+
+					let selectedVoice =
+						voices[document.getElementById("voiceSelect").selectedIndex];
+					if (selectedVoice !== null) {
+						utterance.voice = selectedVoice;
+					}
+
+					utterance.text = refineText(clickedWord + " " + nextPageWords);
+					// Start the text-to-speech feature
+					utterance.onend = function () {
+						if (__CURRENT_PAGE != __TOTAL_PAGES) {
+							__CURRENT_PAGE++;
+							startTextToSpeech();
+							scroll();
+						}
+					};
+					synth.speak(utterance);
+					resume();
+				});
+			}
 		})
 		.catch(function (error) {
 			// If error re-show the upload button
@@ -122,15 +151,10 @@ function showPDF(pdf_url) {
 
 			alert(error.message);
 		});
-
-	loadingTask.onProgress = function (progress) {
-		let percent_loaded = (progress.loaded / progress.total) * 100;
-	};
 }
 
-function showPage(page_no) {
+function showPage(page_no, newCanvas, newCtx) {
 	__PAGE_RENDERING_IN_PROGRESS = 1;
-	__CURRENT_PAGE = page_no;
 
 	// Disable Prev & Next buttons while page is being loaded
 	$("#pdf-next, #pdf-prev").attr("disabled", "disabled");
@@ -140,21 +164,19 @@ function showPage(page_no) {
 	$("#page-loader").show();
 
 	// Update current page in HTML
-	$("#pdf-current-page").text(page_no);
+	// $("#pdf-current-page").text(page_no);
 
 	// Fetch the page
 	__PDF_DOC.getPage(page_no).then(function (page) {
 		// As the canvas is of a fixed width we need to set the scale of the viewport accordingly
-		let scale_required = __CANVAS.width / page.getViewport(1).width;
+		let scale_required = newCanvas.width / page.getViewport(1).width;
 
 		// Get viewport of the page at required scale
 		let viewport = page.getViewport(scale_required);
-
 		// Set canvas height
-		__CANVAS.height = viewport.height;
-
+		newCanvas.height = viewport.height;
 		let renderContext = {
-			canvasContext: __CANVAS_CTX,
+			canvasContext: newCtx,
 			viewport: viewport,
 		};
 
@@ -176,24 +198,35 @@ function showPage(page_no) {
 			})
 			.then(function (textContent) {
 				// Get canvas offset
-				let canvas_offset = $("#pdf-canvas").offset();
-
-				// Clear HTML for text layer
-				$("#text-layer").html("");
+				let canvas_offset = $(`#page${page_no}`).offset();
 
 				// Assign the CSS created to the text-layer element
-				$("#text-layer").css({
+				$(`#textLayer${page_no}`).css({
 					left: canvas_offset.left + "px",
 					top: canvas_offset.top + "px",
-					height: __CANVAS.height + "px",
-					width: __CANVAS.width + "px",
+					height: newCanvas.height + "px",
+					width: newCanvas.width + "px",
 				});
 				// Pass the data to the method for rendering of text over the pdf canvas.
+				// console.log($("#text-layer").get(1));
 				PDFJS.renderTextLayer({
 					textContent: textContent,
-					container: $("#text-layer").get(0),
+					container: $(`#textLayer${page_no}`).get(0),
 					viewport: viewport,
 					textDivs: [],
+				});
+			})
+			.then(function () {
+				const currentPageElement = document.getElementById("pdf-current-page");
+				const pageHeight = parseInt(
+					$("#page1")
+						.css("height")
+						.substring(0, $("#page1").css("height").length - 2)
+				);
+				$(window).scroll(function () {
+					const scrollTop = window.scrollY;
+					const currentPage = Math.floor(scrollTop / pageHeight) + 1;
+					currentPageElement.textContent = currentPage;
 				});
 			});
 	});
@@ -222,18 +255,6 @@ $("#file-to-upload").on("change", function () {
 	// Send the object url of the pdf
 	showPDF(URL.createObjectURL($("#file-to-upload").get(0).files[0]));
 });
-
-function prevPage() {
-	if (__CURRENT_PAGE != 1) {
-		showPage(--__CURRENT_PAGE);
-	}
-}
-
-function nextPage() {
-	if (__CURRENT_PAGE != __TOTAL_PAGES) {
-		showPage(++__CURRENT_PAGE);
-	}
-}
 
 function resume() {
 	$("#resume-button").hide();
