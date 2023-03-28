@@ -1,10 +1,12 @@
 # Book Reader
 
-![Demo Image](Demo.jpeg)
+![Demo Image](Demo.png)
 
 Main feature of this reader is to use read aloud feature for free.
 
 Right now only pdf format is supported.
+
+### Works on Edge Browser only
 
 ## How to Use?
 
@@ -14,13 +16,14 @@ Right now only pdf format is supported.
 
 ## Todo:
 
-1. Skip Header/footers,vertical text,text in brackets
-2. Highlight word/sentence which is being spoken
-3. Make responsive
-4. Add Resize Page Buttons
-5. Create Extension
-6. Create Mobile App
-7. ??
+- [ ] Add Resize Page Buttons
+- [ ] Skip Header/footers,vertical text,text in brackets
+- [ ] Make responsive
+- [ ] Create Extension
+- [ ] Create Mobile App
+- [ ] Make links clickable
+- [ ] Try base64
+- [ ] Use Canvas.before insert method to add textlayer
 
 ## Contribute to development
 

@@ -34,11 +34,14 @@
 					id="pdf-meta"
 					class="navBar"
 				>
-					<select id="voiceSelect"></select>
-
 					<div id="pdf-buttons">
 						<button onclick="startTextToSpeech()">Read Aloud</button>
-						<button onclick="scroll()">Scroll</button>
+						<button
+							id="scroll"
+							onclick="scroll()"
+						>
+							Scroll
+						</button>
 						<button
 							id="resume-button"
 							onclick="resume()"
@@ -51,7 +54,9 @@
 						>
 							Pause
 						</button>
+						<select id="voiceSelect"></select>
 					</div>
+
 					<div id="page-count-container">
 						Page
 						<div id="pdf-current-page">1</div>
