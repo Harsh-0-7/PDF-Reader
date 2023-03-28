@@ -4,13 +4,8 @@ let __PDF_DOC,
 	__CURRENT_PAGE = 1,
 	__TOTAL_PAGES,
 	__PAGE_RENDERING_IN_PROGRESS = 0;
-
 let canvas_width = 1000;
 
-function scroll() {
-	document.getElementById("textLayer" + __CURRENT_PAGE).scrollIntoView();
-	console.log(document.getElementById("textLayer" + __CURRENT_PAGE));
-}
 function populateVoiceList() {
 	if (typeof synth === "undefined") {
 		return;
@@ -19,18 +14,21 @@ function populateVoiceList() {
 	const voices = synth.getVoices();
 
 	for (const element of voices) {
-		const option = document.createElement("option");
-		option.textContent = `${element.name} (${element.lang})`;
+		if (element.lang.substring(0, 2) === "en") {
+			const option = document.createElement("option");
+			option.textContent = `${element.name} (${element.lang})`;
 
-		if (element.default) {
-			option.textContent += " — DEFAULT";
+			if (element.default) {
+				option.textContent += " — DEFAULT";
+			}
+
+			option.setAttribute("data-lang", element.lang);
+			option.setAttribute("data-name", element.name);
+			document.getElementById("voiceSelect").appendChild(option);
 		}
-
-		option.setAttribute("data-lang", element.lang);
-		option.setAttribute("data-name", element.name);
-		document.getElementById("voiceSelect").appendChild(option);
 	}
 }
+
 if (typeof synth !== "undefined" && synth.onvoiceschanged !== undefined) {
 	synth.onvoiceschanged = populateVoiceList;
 }
@@ -40,8 +38,9 @@ function startTextToSpeech(startWord, viewport) {
 	}
 	let voices = synth.getVoices();
 
-	let selectedVoice =
-		voices[document.getElementById("voiceSelect").selectedIndex];
+	let selectedVoice = voices.filter(
+		(element) => element.lang.substring(0, 2) === "en"
+	)[document.getElementById("voiceSelect").selectedIndex];
 	if (selectedVoice !== null) {
 		utterance.voice = selectedVoice;
 	}
@@ -63,9 +62,24 @@ function startTextToSpeech(startWord, viewport) {
 			} else {
 				utterance.text = refineText(textContent);
 			}
+			utterance.onerror = (error) => console.log(error);
+			utterance.onpause = () => console.log("Paused");
+			utterance.onmark = () => console.log("On Mark");
+			utterance.onboundary = (event) => {
+				// console.log(event);
+				highlightWord();
+			};
+
 			utterance.onend = function () {
+				console.log("Ended");
 				if (__CURRENT_PAGE != __TOTAL_PAGES) {
+					document
+						.getElementById("word-" + __CURRENT_PAGE + "-" + prevId)
+						.classList.remove("highlight");
+
 					__CURRENT_PAGE++;
+					prevId = 0;
+
 					startTextToSpeech();
 					scroll();
 				}
@@ -78,7 +92,6 @@ function startTextToSpeech(startWord, viewport) {
 			console.log(error);
 		});
 }
-
 function showPDF(pdf_url) {
 	$("#pdf-loader").show();
 
@@ -106,35 +119,75 @@ function showPDF(pdf_url) {
 
 				showPage(i, canvas, canvas.getContext("2d"));
 				// Add click event listeners to each word in the text layer
-				$("#textLayer" + i).on("click", "div", function () {
+				$("#textLayer" + i).on("click", "span", function () {
 					// Get the clicked word's text content
+					if (prevId !== 0) {
+						document
+							.getElementById("word-" + __CURRENT_PAGE + "-" + prevId)
+							.classList.remove("highlight");
+					}
 					__CURRENT_PAGE = i;
+					prevId = parseInt($(this).attr("id").split("-")[2]) - 1;
 					const clickedWord = $(this).text().trim();
+
+					// console.log("clicked", $(this));
 					// Get the text content of the rest of the page
-					const nextPageWords = $(this)
-						.nextAll("div")
-						.map(function () {
-							return $(this).text().trim();
-						})
-						.get()
-						.join(" ");
+					const nextPageWords =
+						$(this)
+							.nextAll("span")
+							.map(function () {
+								return $(this).text().trim();
+							})
+							.get()
+							.join(" ") +
+						" " +
+						$(this)
+							.parent()
+							.nextAll("div")
+							.map(function () {
+								return $(this).text().trim();
+							})
+							.get()
+							.join(" ");
 					// Set the text to the utterance
 					if (synth.speaking) {
 						synth.cancel();
 					}
 					let voices = synth.getVoices();
 
-					let selectedVoice =
-						voices[document.getElementById("voiceSelect").selectedIndex];
+					let selectedVoice = voices.filter(
+						(element) => element.lang.substring(0, 2) === "en"
+					)[document.getElementById("voiceSelect").selectedIndex];
 					if (selectedVoice !== null) {
 						utterance.voice = selectedVoice;
 					}
+					utterance.onerror = (error) => console.log(error);
+					utterance.onpause = () => console.log("Paused");
+					utterance.onmark = () => console.log("On Mark");
+					utterance.onboundary = (event) => {
+						// console.log(event);
 
+						highlightWord();
+						// console.log(
+						// 	event.utterance.text.substring(
+						// 		event.charIndex,
+						// 		event.charIndex + event.charLength
+						// 	)
+						// );
+					};
+					// utterance.lang = "en-US";
 					utterance.text = refineText(clickedWord + " " + nextPageWords);
 					// Start the text-to-speech feature
 					utterance.onend = function () {
+						console.log("Ended");
 						if (__CURRENT_PAGE != __TOTAL_PAGES) {
+							document
+								.getElementById("word-" + __CURRENT_PAGE + "-" + prevId)
+								.classList.remove("highlight");
+
 							__CURRENT_PAGE++;
+							prevId = 0;
+
 							startTextToSpeech();
 							scroll();
 						}
@@ -152,6 +205,15 @@ function showPDF(pdf_url) {
 			alert(error.message);
 		});
 }
+let prevId = 0;
+function highlightWord() {
+	let wordId = "word-" + __CURRENT_PAGE + "-";
+	if (document.getElementById(wordId + prevId) !== null)
+		document.getElementById(wordId + prevId).classList.remove("highlight");
+	if (document.getElementById(wordId + ++prevId) !== null)
+		document.getElementById(wordId + prevId).classList.add("highlight");
+	else console.log("Null id", prevId);
+}
 
 function showPage(page_no, newCanvas, newCtx) {
 	__PAGE_RENDERING_IN_PROGRESS = 1;
@@ -162,9 +224,6 @@ function showPage(page_no, newCanvas, newCtx) {
 	// While page is being rendered hide the canvas and show a loading message
 	$("#pdf-canvas").hide();
 	$("#page-loader").show();
-
-	// Update current page in HTML
-	// $("#pdf-current-page").text(page_no);
 
 	// Fetch the page
 	__PDF_DOC.getPage(page_no).then(function (page) {
@@ -184,8 +243,6 @@ function showPage(page_no, newCanvas, newCtx) {
 		page
 			.render(renderContext)
 			.then(function () {
-				__PAGE_RENDERING_IN_PROGRESS = 0;
-
 				// Re-enable Prev & Next buttons
 				$("#pdf-next, #pdf-prev").removeAttr("disabled");
 
@@ -208,7 +265,6 @@ function showPage(page_no, newCanvas, newCtx) {
 					width: newCanvas.width + "px",
 				});
 				// Pass the data to the method for rendering of text over the pdf canvas.
-				// console.log($("#text-layer").get(1));
 				PDFJS.renderTextLayer({
 					textContent: textContent,
 					container: $(`#textLayer${page_no}`).get(0),
@@ -217,6 +273,20 @@ function showPage(page_no, newCanvas, newCtx) {
 				});
 			})
 			.then(function () {
+				let allDivs = document.querySelectorAll(`#textLayer${page_no} > div`);
+				let sum = 1;
+				for (const element of allDivs) {
+					const words = element.innerText.split(" ");
+					let newSentence = "";
+					for (const word of words) {
+						if (word.length !== 0 && word.trim()[0] !== "-") {
+							const wordId = `word-${page_no}-${sum++}`;
+							newSentence += `<span id="${wordId}">${word.trim()} </span>`;
+						}
+					}
+					element.innerHTML = newSentence;
+				}
+
 				const currentPageElement = document.getElementById("pdf-current-page");
 				const pageHeight = parseInt(
 					$("#page1")
@@ -228,6 +298,7 @@ function showPage(page_no, newCanvas, newCtx) {
 					const currentPage = Math.floor(scrollTop / pageHeight) + 1;
 					currentPageElement.textContent = currentPage;
 				});
+				__PAGE_RENDERING_IN_PROGRESS = 0;
 			});
 	});
 }
@@ -273,6 +344,13 @@ window.onbeforeunload = function () {
 };
 
 function refineText(text) {
-	let newText = text.replace(/\x00/g, "");
+	let newText = text.replace(/\x00/g, "").replace(/\s+/g, " ").trim();
 	return newText;
+}
+
+$("#scroll").on("click", function () {
+	scroll();
+});
+function scroll() {
+	document.getElementById("page" + __CURRENT_PAGE).scrollIntoView();
 }

@@ -16,8 +16,6 @@
 	display: flex;
 	flex-direction: column;
 	gap: 30px;
-	height: 1200;
-	overflow: auto;
 }
 #pdf-loader {
 	display: none;
@@ -117,7 +115,7 @@
 	cursor: text;
 	transform-origin: 0% 0%;
 }
-.textLayer > div:hover {
+.textLayer > div > span:hover {
 	background-color: blue;
 	color: transparent;
 	position: absolute;
@@ -136,6 +134,8 @@
 	background-color: lightblue;
 	z-index: 1;
 	padding: 10px 10px;
+	display: flex;
+	justify-content: space-between;
 }
 body {
 	background-color: lightcyan;
