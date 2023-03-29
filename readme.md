@@ -1,16 +1,14 @@
-# Book Reader
+# PDF Reader
 
 ![Demo Image](Demo.png)
 
 Main feature of this reader is to use read aloud feature for free.
 
-Right now only pdf format is supported.
-
 ### Works on Edge Browser only
 
 ## How to Use?
 
-- Open pdf.html
+- Open index.html
 - Upload PDF
 - Click on Read Aloud Button (Need Internet)
 
@@ -29,10 +27,10 @@ Right now only pdf format is supported.
 
 ```bash
 # Clone repository
-$ git clone https://github.com/Harsh-0-7/Book-Reader.git
+$ git clone https://github.com/Harsh-0-7/PDF-Reader.git
 
 # Move to working directory
-$ cd Book-Reader
+$ cd PDF-Reader
 
 # Install dependencies
 $ npm install
@@ -42,7 +40,7 @@ $ npm install
 
 Please open a new issue on:
 
-https://github.com/Harsh-0-7/Book-Reader/issues
+https://github.com/Harsh-0-7/PDF-Reader/issues
 
 ## License
 
