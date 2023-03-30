@@ -7,6 +7,7 @@ let __PDF_DOC,
 let canvas_width = 1000;
 let pageHeight = -1;
 let __VIEWING_PAGE = __CURRENT_PAGE;
+
 function populateVoiceList() {
 	if (
 		typeof synth === "undefined" ||
@@ -109,10 +110,17 @@ function loadPage(pageNumber) {
 	canvas.width = canvas_width;
 	let textLayer = document.createElement("div");
 	textLayer.id = "textLayer" + pageNumber;
+	let annotationLayer = document.createElement("div");
+	annotationLayer.id = "annotationLayer" + pageNumber;
+
 	canvas.classList.add("canvas");
 	textLayer.classList.add("textLayer");
-	document.getElementById("pdfContainer").appendChild(canvas);
-	document.getElementById("pdfContainer").appendChild(textLayer);
+	annotationLayer.classList.add("annotationLayer");
+	let pdfContainer = document.getElementById("pdfContainer");
+	pdfContainer.appendChild(canvas);
+	pdfContainer.appendChild(textLayer);
+	pdfContainer.appendChild(annotationLayer);
+
 	showPage(pageNumber, canvas, canvas.getContext("2d"));
 	// Add click event listeners to each word in the text layer
 	$("#textLayer" + pageNumber).on("click", "span", function () {
@@ -218,11 +226,8 @@ function highlightWord() {
 function showPage(page_no, newCanvas, newCtx) {
 	__PAGE_RENDERING_IN_PROGRESS = 1;
 
-	// Disable Prev & Next buttons while page is being loaded
-	$("#pdf-next, #pdf-prev").attr("disabled", "disabled");
-
 	// While page is being rendered hide the canvas and show a loading message
-	$("#pdf-canvas").hide();
+	$("#page" + page_no).hide();
 	$("#page-loader").show();
 
 	// Fetch the page
@@ -238,25 +243,45 @@ function showPage(page_no, newCanvas, newCtx) {
 			canvasContext: newCtx,
 			viewport: viewport,
 		};
-
 		// Render the page contents in the canvas
 		page
 			.render(renderContext)
 			.then(function () {
-				// Re-enable Prev & Next buttons
-				$("#pdf-next, #pdf-prev").removeAttr("disabled");
+				__PAGE_RENDERING_IN_PROGRESS = 0;
 
 				// Show the canvas and hide the page loader
-				$("#pdf-canvas").show();
+				$("#page" + page_no).show();
 				$("#page-loader").hide();
 
-				// Return the text contents of the page after the pdf has been rendered in the canvas
-				return page.getTextContent();
+				// Return annotation data of the page after the pdf has been rendered in the canvas
+				return page.getAnnotations();
 			})
-			.then(function (textContent) {
+			.then(async function (annotationData) {
 				// Get canvas offset
-				let canvas_offset = $(`#page${page_no}`).offset();
+				let canvas_offset = $("#page" + page_no).offset();
+				if (annotationData.length !== 0) {
+					// Clear HTML for annotation layer and show
+					$("#annotationLayer" + page_no)
+						.html("")
+						.show();
 
+					// Assign the CSS created to the annotation-layer element
+					$("#annotationLayer" + page_no).css({
+						left: canvas_offset.left + "px",
+						top: canvas_offset.top + "px",
+						height: newCanvas.height + "px",
+						width: newCanvas.width + "px",
+					});
+
+					PDFJS.AnnotationLayer.render({
+						viewport: viewport.clone({ dontFlip: true }),
+						div: $("#annotationLayer" + page_no).get(0),
+						annotations: annotationData,
+						page: page,
+					});
+				}
+
+				const text = await page.getTextContent();
 				// Assign the CSS created to the text-layer element
 				$(`#textLayer${page_no}`).css({
 					left: canvas_offset.left + "px",
@@ -264,9 +289,8 @@ function showPage(page_no, newCanvas, newCtx) {
 					height: newCanvas.height + "px",
 					width: newCanvas.width + "px",
 				});
-				// Pass the data to the method for rendering of text over the pdf canvas.
 				PDFJS.renderTextLayer({
-					textContent: textContent,
+					textContent: text,
 					container: $(`#textLayer${page_no}`).get(0),
 					viewport: viewport,
 					textDivs: [],
