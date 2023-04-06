@@ -73,7 +73,6 @@
 	overflow: hidden;
 	opacity: 0.2;
 	line-height: 1;
-	z-index: 4; /* set a lower z-index */
 }
 
 .textLayer > div {
@@ -83,7 +82,6 @@
 	white-space: pre;
 	cursor: text;
 	transform-origin: 0% 0%;
-	z-index: 4; /* set a lower z-index */
 }
 
 .textLayer > div > span:hover {
@@ -93,7 +91,6 @@
 	white-space: pre;
 	cursor: text;
 	transform-origin: 0% 0%;
-	z-index: 4; /* set a lower z-index */
 }
 .highlight {
 	background-color: red !important;
