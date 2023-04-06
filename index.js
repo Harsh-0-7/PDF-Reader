@@ -272,13 +272,14 @@ function showPage(page_no, newCanvas, newCtx) {
 						height: newCanvas.height + "px",
 						width: newCanvas.width + "px",
 					});
-
-					PDFJS.AnnotationLayer.render({
-						viewport: viewport.clone({ dontFlip: true }),
-						div: $("#annotationLayer" + page_no).get(0),
-						annotations: annotationData,
-						page: page,
-					});
+					try {
+						PDFJS.AnnotationLayer.render({
+							viewport: viewport.clone({ dontFlip: true }),
+							div: $("#annotationLayer" + page_no).get(0),
+							annotations: annotationData,
+							page: page,
+						});
+					} catch {}
 				}
 
 				const text = await page.getTextContent();
