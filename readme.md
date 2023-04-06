@@ -1,6 +1,6 @@
 # PDF Reader
 
-![Demo Image](Demo.png)
+![Demo Image](./Demo.png)
 
 Main feature of this reader is to use read aloud feature for free.
 
