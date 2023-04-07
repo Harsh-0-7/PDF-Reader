@@ -173,10 +173,11 @@ function loadPage(pageNumber) {
 			console.log("Ended");
 
 			if (__CURRENT_PAGE != __TOTAL_PAGES) {
-				document
-					.getElementById("word-" + __CURRENT_PAGE + "-" + prevId)
-					.classList.remove("highlight");
-
+				try {
+					document
+						.getElementById("word-" + __CURRENT_PAGE + "-" + prevId)
+						.classList.remove("highlight");
+				} catch {}
 				__CURRENT_PAGE++;
 				prevId = 0;
 				startTextToSpeech();
