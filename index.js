@@ -34,13 +34,13 @@ function populateVoiceList() {
   synth.getVoices().forEach(function (voice) {
     if (voice.lang.substring(0, 2) !== "en") return;
     let option = document.createElement("option");
-    option.textContent = `${voice.name} (${voice.lang})${
-      voice.default ? " — DEFAULT" : ""
-    }`;
+    option.textContent = `${voice.name} (${voice.lang})`;
     option.dataset.lang = voice.lang;
     option.dataset.name = voice.name;
     voiceSelect.appendChild(option);
   });
+  if (voiceSelect.options.length)
+    voiceSelect.selectedIndex = voiceSelect.options.length - 1;
 }
 
 if (synth && synth.onvoiceschanged !== undefined)
