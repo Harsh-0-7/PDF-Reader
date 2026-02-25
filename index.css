@@ -13,9 +13,11 @@
 	margin: 20px auto;
 }
 #pdfContainer {
-	display: flex;
-	flex-direction: column;
-	gap: 30px;
+	display: block;
+}
+.page-shell {
+	position: relative;
+	margin-bottom: 30px;
 }
 #pdf-loader {
 	display: none;
@@ -41,10 +43,19 @@
 
 #page-count-container {
 	float: right;
+	display: flex;
+	align-items: center;
+	gap:0.3rem;
 }
 
 #pdf-current-page {
-	display: inline;
+	display: inline-block;
+	width: 40px;
+	padding: 4px 6px;
+	border: 1px solid rgba(0, 0, 0, 0.3);
+	border-radius: 4px;
+	text-align: center;
+	background-color: white;
 }
 
 #pdf-total-pages {

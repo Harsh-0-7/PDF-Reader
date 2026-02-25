@@ -5,16 +5,19 @@ let __PDF_DOC,
   __TOTAL_PAGES,
   canvas_width = 1000,
   pageHeight = -1,
+  defaultPageHeight = 0,
   viewingPage = __CURRENT_PAGE,
   scrollHandlerBound = false,
   pageElementsByNumber = new Map(),
   currentSpeechMap = null,
   prevId = 0;
 
+const pageGap = 30;
 const ui = {
   $pdfLoader: $("#pdf-loader"),
   $pdfContents: $("#pdf-contents"),
   $pdfTotalPages: $("#pdf-total-pages"),
+  $pdfCurrentPage: $("#pdf-current-page"),
   $pdfContainer: $("#pdfContainer"),
   $uploadButton: $("#upload-button"),
   $fileToUpload: $("#file-to-upload"),
@@ -58,6 +61,55 @@ function rafThrottle(handler) {
       handler();
     });
   };
+}
+
+function getPageShell(pageNumber) {
+  let shell = document.querySelector(
+    `.page-shell[data-page="${pageNumber}"]`,
+  );
+  if (shell) return shell;
+  shell = document.createElement("div");
+  shell.className = "page-shell";
+  shell.dataset.page = pageNumber;
+  let next = document.querySelector(
+    `.page-shell[data-page="${pageNumber + 1}"]`,
+  );
+  if (next) next.before(shell);
+  else ui.$pdfContainer.append(shell);
+  if (defaultPageHeight > 0) shell.style.minHeight = defaultPageHeight + "px";
+  return shell;
+}
+
+function ensurePageShells() {
+  if (!__TOTAL_PAGES) return;
+  ui.$pdfContainer.empty();
+  for (let page = 1; page <= __TOTAL_PAGES; page++) {
+    let shell = document.createElement("div");
+    shell.className = "page-shell";
+    shell.dataset.page = page;
+    if (defaultPageHeight > 0)
+      shell.style.minHeight = defaultPageHeight + "px";
+    ui.$pdfContainer.append(shell);
+  }
+}
+
+function normalizePageNumber(value) {
+  let parsed = parseInt(value, 10);
+  if (Number.isNaN(parsed) || !__TOTAL_PAGES) return null;
+  return Math.min(Math.max(parsed, 1), __TOTAL_PAGES);
+}
+
+function jumpToPage(value) {
+  if (!__PDF_DOC) return;
+  let target = normalizePageNumber(value);
+  if (!target) {
+    ui.$pdfCurrentPage.val(__CURRENT_PAGE || 1);
+    return;
+  }
+  __CURRENT_PAGE = target;
+  ui.$pdfCurrentPage.val(target);
+  loadPage(target);
+  scrollToCurrentPage();
 }
 
 function getPage(pageNumber) {
@@ -187,7 +239,7 @@ function loadPage(pageNumber) {
   if (pageNumber > __TOTAL_PAGES) return;
   let pageElements = getPageElements(pageNumber);
   if (!pageElements.appended) {
-    ui.$pdfContainer.append(
+    $(pageElements.wrapper).append(
       pageElements.canvas,
       pageElements.textLayer,
       pageElements.annotationLayer,
@@ -274,6 +326,7 @@ function buildWordId(pageNumber, wordIndex) {
 function getPageElements(pageNumber) {
   if (pageElementsByNumber.has(pageNumber))
     return pageElementsByNumber.get(pageNumber);
+  let wrapper = getPageShell(pageNumber);
   let canvas = document.createElement("canvas");
   canvas.id = "page" + pageNumber;
   canvas.width = canvas_width;
@@ -285,6 +338,7 @@ function getPageElements(pageNumber) {
   annotationLayer.id = "annotationLayer" + pageNumber;
   annotationLayer.className = "annotationLayer";
   let pageElements = {
+    wrapper,
     canvas,
     textLayer,
     annotationLayer,
@@ -308,13 +362,16 @@ function showPDF(pdf_url) {
       viewingPage = 1;
       pageElementsByNumber.clear();
       pageHeight = -1;
-      ui.$pdfContainer.empty();
+      defaultPageHeight = 0;
+      ensurePageShells();
       clearHighlightedWord(__CURRENT_PAGE, prevId);
       __CURRENT_PAGE = 1;
       prevId = 0;
       ui.$pdfLoader.hide();
       ui.$pdfContents.show();
       ui.$pdfTotalPages.text(__TOTAL_PAGES);
+      ui.$pdfCurrentPage.attr("max", __TOTAL_PAGES);
+      ui.$pdfCurrentPage.val(__CURRENT_PAGE);
       loadPage(1);
     })
     .catch((error) => handleError(error, "pdf-load"));
@@ -333,20 +390,28 @@ async function showPage(pageNumber, canvas, ctx) {
     $("#page-loader").hide();
     if (pageHeight <= 0)
       pageHeight = canvas.getBoundingClientRect().height || canvas.height;
+    if (!defaultPageHeight && pageHeight > 0) {
+      defaultPageHeight = pageHeight;
+      document.querySelectorAll(".page-shell").forEach((shell) => {
+        if (!shell.style.minHeight)
+          shell.style.minHeight = defaultPageHeight + "px";
+      });
+    }
     let [annotationData, text] = await Promise.all([
       page.getAnnotations(),
       page.getTextContent(),
     ]);
-    let canvasOffset = $(canvas).offset() || { left: 0, top: 0 };
     let pageElements = getPageElements(pageNumber);
+    let wrapper = pageElements.wrapper;
+    if (wrapper) wrapper.style.minHeight = canvas.height + "px";
     if (annotationData.length) {
       let annotationLayer = pageElements.annotationLayer;
       $(annotationLayer)
         .html("")
         .show()
         .css({
-          left: canvasOffset.left + "px",
-          top: canvasOffset.top + "px",
+          left: "0px",
+          top: "0px",
           height: canvas.height + "px",
           width: canvas.width + "px",
         });
@@ -361,8 +426,8 @@ async function showPage(pageNumber, canvas, ctx) {
     }
     let textLayer = pageElements.textLayer;
     $(textLayer).css({
-      left: canvasOffset.left + "px",
-      top: canvasOffset.top + "px",
+      left: "0px",
+      top: "0px",
       height: canvas.height + "px",
       width: canvas.width + "px",
     });
@@ -407,6 +472,21 @@ function getPageHeight() {
   return page ? page.getBoundingClientRect().height : 0;
 }
 
+function estimateCurrentPage() {
+  if (!defaultPageHeight) return __CURRENT_PAGE;
+  let estimated =
+    Math.floor(window.scrollY / (defaultPageHeight + pageGap)) + 1;
+  return Math.min(Math.max(estimated, 1), __TOTAL_PAGES || 1);
+}
+
+function loadPagesAround(pageNumber) {
+  if (!__TOTAL_PAGES) return;
+  let pages = [pageNumber - 1, pageNumber, pageNumber + 1];
+  pages.forEach((page) => {
+    if (page >= 1 && page <= __TOTAL_PAGES) loadPage(page);
+  });
+}
+
 function ensureScrollHandler() {
   if (scrollHandlerBound) {
     if (pageHeight <= 0) pageHeight = getPageHeight();
@@ -415,13 +495,11 @@ function ensureScrollHandler() {
   let currentPageElement = document.getElementById("pdf-current-page");
   let handler = rafThrottle(function () {
     if (pageHeight <= 0) pageHeight = getPageHeight();
-    if (pageHeight > 0)
-      currentPageElement.textContent =
-        Math.floor(window.scrollY / pageHeight) + 1;
-    if (__TOTAL_PAGES && viewingPage < __TOTAL_PAGES) {
-      let scrollBottom = window.scrollY + window.innerHeight;
-      let docHeight = document.documentElement.scrollHeight;
-      if (scrollBottom >= docHeight * 0.9) loadPage(++viewingPage);
+    if (__TOTAL_PAGES) {
+      let estimatedPage = estimateCurrentPage();
+      __CURRENT_PAGE = estimatedPage;
+      currentPageElement.value = estimatedPage;
+      loadPagesAround(estimatedPage);
     }
   });
   $(window).scroll(handler);
@@ -438,6 +516,15 @@ ui.$pdfContainer.on("click", ".textLayer span", function () {
   let pageNumber = parseInt(parts[1], 10) || __CURRENT_PAGE;
   let wordIndex = parseInt(parts[2], 10) || 0;
   handleWordClick($(this), pageNumber, wordIndex);
+});
+ui.$pdfCurrentPage.on("change", function () {
+  jumpToPage(this.value);
+});
+ui.$pdfCurrentPage.on("keydown", function (event) {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  this.blur();
+  jumpToPage(this.value);
 });
 ui.$fileToUpload.on("change", function () {
   if (
@@ -471,7 +558,9 @@ function refineText(text) {
 }
 
 function scrollToCurrentPage() {
-  let target = document.getElementById("page" + __CURRENT_PAGE);
+  let target =
+    document.querySelector(`.page-shell[data-page="${__CURRENT_PAGE}"]`) ||
+    document.getElementById("page" + __CURRENT_PAGE);
   if (target) target.scrollIntoView();
 }
 
