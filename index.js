@@ -19,6 +19,9 @@ const ui = {
   $pdfTotalPages: $("#pdf-total-pages"),
   $pdfCurrentPage: $("#pdf-current-page"),
   $pdfContainer: $("#pdfContainer"),
+  $pdfTocItems: $("#pdf-toc-items"),
+  $tocToggle: $("#toc-toggle"),
+  $tocDialog: $("#pdf-toc-dialog"),
   $uploadButton: $("#upload-button"),
   $fileToUpload: $("#file-to-upload"),
   $resumeButton: $("#resume-button"),
@@ -110,6 +113,70 @@ function jumpToPage(value) {
   ui.$pdfCurrentPage.val(target);
   loadPage(target);
   scrollToCurrentPage();
+}
+
+async function resolveOutlinePageNumber(outlineItem) {
+  if (!__PDF_DOC || !outlineItem) return null;
+  let destination = outlineItem.dest || outlineItem.destination || null;
+  if (!destination && outlineItem.url) return null;
+  if (typeof destination === "string") {
+    destination = await __PDF_DOC.getDestination(destination);
+  }
+  if (!destination || !destination.length) return null;
+  let ref = destination[0];
+  let pageIndex = await __PDF_DOC.getPageIndex(ref);
+  return pageIndex + 1;
+}
+
+async function renderOutlineItems(items, container, depth) {
+  if (!items || !items.length) return;
+  for (let i = 0; i < items.length; i++) {
+    let item = items[i];
+    let pageNumber = null;
+    try {
+      pageNumber = await resolveOutlinePageNumber(item);
+    } catch {}
+    let entry = document.createElement("div");
+    entry.className = "toc-item";
+    entry.textContent = item.title || "Untitled";
+    entry.style.paddingLeft = `${depth * 12}px`;
+    if (pageNumber) {
+      entry.dataset.page = pageNumber;
+      entry.title = `Page ${pageNumber}`;
+    } else if (item.url) {
+      entry.title = "External link";
+    }
+    container.appendChild(entry);
+    if (item.items && item.items.length)
+      await renderOutlineItems(item.items, container, depth + 1);
+  }
+}
+
+async function loadTableOfContents() {
+  if (!__PDF_DOC) return;
+  ui.$pdfTocItems.empty();
+  ui.$pdfTocItems.text("Loading...");
+  try {
+    let outline = await __PDF_DOC.getOutline();
+    ui.$pdfTocItems.empty();
+    if (!outline || !outline.length) {
+      ui.$pdfTocItems.text("No outline available");
+      return;
+    }
+    await renderOutlineItems(outline, ui.$pdfTocItems.get(0), 0);
+  } catch (error) {
+    handleError(error, "outline-load");
+    ui.$pdfTocItems.text("No outline available");
+  }
+}
+
+function setTocOpen(isOpen) {
+  if (isOpen) {
+    if (!ui.$tocDialog.prop("open")) ui.$tocDialog.get(0).showModal();
+  } else if (ui.$tocDialog.prop("open")) {
+    ui.$tocDialog.get(0).close();
+  }
+  ui.$tocToggle.text("Contents");
 }
 
 function getPage(pageNumber) {
@@ -373,12 +440,14 @@ function showPDF(pdf_url) {
       ui.$pdfCurrentPage.attr("max", __TOTAL_PAGES);
       ui.$pdfCurrentPage.val(__CURRENT_PAGE);
       loadPage(1);
+      loadTableOfContents();
+      setTocOpen(false);
     })
     .catch((error) => handleError(error, "pdf-load"));
 }
 
 async function showPage(pageNumber, canvas, ctx) {
-  canvas.style.display = "none";
+  canvas.style.visibility = "hidden";
   $("#page-loader").show();
   try {
     let page = await getPage(pageNumber);
@@ -386,7 +455,7 @@ async function showPage(pageNumber, canvas, ctx) {
     canvas.height = viewport.height;
     let renderTask = page.render({ canvasContext: ctx, viewport: viewport });
     if (renderTask && renderTask.promise) await renderTask.promise;
-    canvas.style.display = "";
+    canvas.style.visibility = "visible";
     $("#page-loader").hide();
     if (pageHeight <= 0)
       pageHeight = canvas.getBoundingClientRect().height || canvas.height;
@@ -516,6 +585,19 @@ ui.$pdfContainer.on("click", ".textLayer span", function () {
   let pageNumber = parseInt(parts[1], 10) || __CURRENT_PAGE;
   let wordIndex = parseInt(parts[2], 10) || 0;
   handleWordClick($(this), pageNumber, wordIndex);
+});
+ui.$tocToggle.on("click", function () {
+  let isOpen = ui.$tocDialog.prop("open");
+  setTocOpen(!isOpen);
+});
+ui.$tocDialog.on("click", function (event) {
+  if (event.target === this) setTocOpen(false);
+});
+ui.$pdfTocItems.on("click", ".toc-item", function () {
+  let page = parseInt(this.dataset.page, 10);
+  if (!page) return;
+  setTocOpen(false);
+  jumpToPage(page);
 });
 ui.$pdfCurrentPage.on("change", function () {
   jumpToPage(this.value);

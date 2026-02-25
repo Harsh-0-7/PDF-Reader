@@ -38,6 +38,12 @@
 					<div id="pdf-buttons">
 						<button onclick="startTextToSpeech()">Read Aloud</button>
 						<button
+							id="toc-toggle"
+							type="button"
+						>
+							Contents
+						</button>
+						<button
 							id="scroll"
 							onclick="scrollToCurrentPage()"
 						>
@@ -71,10 +77,18 @@
 						<div id="pdf-total-pages"></div>
 					</div>
 				</div>
-				<div id="pdfContainer"></div>
+				<div id="pdf-body">
+					<div id="pdfContainer"></div>
+				</div>
 				<div id="page-loader">Loading page ...</div>
 			</div>
 		</div>
+		<dialog id="pdf-toc-dialog">
+			<div id="pdf-toc-header">
+				<div id="pdf-toc-title">Table of Contents</div>
+			</div>
+			<div id="pdf-toc-items">No outline available</div>
+		</dialog>
 		<script src="./index.js"></script>
 	</body>
 </html>

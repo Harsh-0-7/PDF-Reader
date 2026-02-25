@@ -12,8 +12,58 @@
 	width: fit-content;
 	margin: 20px auto;
 }
+#pdf-body {
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+}
 #pdfContainer {
 	display: block;
+}
+.page-shell {
+	position: relative;
+	margin-bottom: 30px;
+}
+#pdf-toc-dialog {
+	width: min(520px, 90vw);
+	max-height: min(70vh, 600px);
+	border: none;
+	border-radius: 10px;
+	padding: 16px;
+	box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+	background-color: #f6fbff;
+}
+#pdf-toc-dialog::backdrop {
+	background: rgba(6, 10, 18, 0.65);
+}
+#pdf-toc-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 10px;
+}
+#pdf-toc-title {
+	font-weight: 600;
+	margin-bottom: 8px;
+}
+#pdf-toc-items {
+	max-height: calc(70vh - 70px);
+	overflow: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.toc-item {
+	cursor: pointer;
+	color: #0a3c62;
+	word-break: break-word;
+	padding: 4px 6px;
+	border-radius: 4px;
+}
+.toc-item:hover {
+	text-decoration: underline;
+	background-color: rgba(10, 60, 98, 0.08);
 }
 .page-shell {
 	position: relative;
@@ -45,7 +95,7 @@
 	float: right;
 	display: flex;
 	align-items: center;
-	gap:0.3rem;
+	gap: 0.3rem;
 }
 
 #pdf-current-page {
@@ -66,6 +116,9 @@
 	border: 1px solid rgba(0, 0, 0, 0.2);
 	box-sizing: border-box;
 	box-shadow: 0 0 7px black;
+	display: block;
+	background-color: white;
+	border-radius: 6px;
 }
 #page-loader {
 	height: 100px;
@@ -119,6 +172,22 @@
 }
 body {
 	background-color: rgb(51, 51, 51);
+}
+#pdf-buttons button {
+	background-color: #0b3c5d;
+	color: #ffffff;
+	border: none;
+	border-radius: 6px;
+	padding: 6px 10px;
+	cursor: pointer;
+}
+#pdf-buttons button:hover {
+	background-color: #0f4d76;
+}
+#pdf-buttons select {
+	border-radius: 6px;
+	border: 1px solid rgba(0, 0, 0, 0.3);
+	padding: 4px 8px;
 }
 .annotationLayer {
 	position: absolute;
