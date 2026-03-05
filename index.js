@@ -313,12 +313,14 @@ function loadPage(pageNumber) {
     );
     pageElements.appended = true;
   }
-  if (!pageElements.rendered)
-    showPage(
-      pageNumber,
-      pageElements.canvas,
-      pageElements.canvas.getContext("2d"),
-    );
+  if (pageElements.rendered || pageElements.renderPromise) return;
+  pageElements.renderPromise = showPage(
+    pageNumber,
+    pageElements.canvas,
+    pageElements.canvas.getContext("2d"),
+  ).finally(function () {
+    pageElements.renderPromise = null;
+  });
 }
 
 function handleWordClick($wordSpan, pageNumber, wordIndex) {
@@ -411,6 +413,7 @@ function getPageElements(pageNumber) {
     annotationLayer,
     appended: false,
     rendered: false,
+    renderPromise: null,
     text: null,
     words: null,
     wordStarts: null,
@@ -608,6 +611,28 @@ ui.$pdfCurrentPage.on("keydown", function (event) {
   this.blur();
   jumpToPage(this.value);
 });
+$(document).on("keydown", function (event) {
+  if (event.code !== "Space" && event.key !== " ") return;
+  if (event.repeat) return;
+  let target = event.target;
+  if (
+    target &&
+    (target.tagName === "INPUT" ||
+      target.tagName === "TEXTAREA" ||
+      target.tagName === "SELECT" ||
+      target.tagName === "BUTTON" ||
+      target.isContentEditable)
+  ) {
+    return;
+  }
+  if (!synth) return;
+  event.preventDefault();
+  if (ui.$resumeButton.is(":visible")) {
+    resume();
+    return;
+  }
+  if (synth.speaking) pause();
+});
 ui.$fileToUpload.on("change", function () {
   if (
     ["application/pdf"].indexOf(ui.$fileToUpload.get(0).files[0].type) == -1
@@ -622,7 +647,7 @@ ui.$fileToUpload.on("change", function () {
 function resume() {
   ui.$resumeButton.hide();
   ui.$pauseButton.show();
-  if (!synth.paused) synth.resume();
+  synth.resume();
 }
 
 function pause() {
