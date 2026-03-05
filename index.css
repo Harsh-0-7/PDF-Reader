@@ -290,6 +290,14 @@ body {
 	padding: 4px 8px;
 	height: 34px;
 }
+#speech-rate {
+	width: 56px !important;
+	min-width: 56px !important;
+	max-width: 56px;
+	flex: 0 0 56px;
+	padding: 2px 4px;
+	box-sizing: border-box;
+}
 .annotationLayer {
 	position: absolute;
 	left: 0;

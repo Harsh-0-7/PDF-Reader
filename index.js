@@ -27,6 +27,7 @@ const ui = {
   $tocDialog: $("#pdf-toc-dialog"),
   $uploadButton: $("#upload-button"),
   $fileToUpload: $("#file-to-upload"),
+  $speechRate: $("#speech-rate"),
   $scrollButton: $("#scroll"),
   $resumeButton: $("#resume-button"),
   $pauseButton: $("#pause-button"),
@@ -53,6 +54,12 @@ function setReadingControlsVisible(isVisible) {
 function updateReadingButtonVisibility() {
   if (isTtsActive && viewingPage !== __CURRENT_PAGE) ui.$scrollButton.show();
   else ui.$scrollButton.hide();
+}
+
+function getSelectedSpeechRate() {
+  let rate = parseFloat(ui.$speechRate.val());
+  if (Number.isNaN(rate)) return 1;
+  return Math.min(Math.max(rate, 0.5), 2);
 }
 
 setReadingControlsVisible(false);
@@ -296,6 +303,7 @@ function startSpeech(text, keepSpeechMap, shouldRefine) {
   } else {
     utterance.voice = voices[selectedIndex] || null;
   }
+  utterance.rate = getSelectedSpeechRate();
   utterance.text = shouldRefine === false ? text : refineText(text);
   utterance.onerror = (error) => {
     setReadingControlsVisible(false);
