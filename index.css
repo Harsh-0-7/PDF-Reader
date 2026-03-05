@@ -85,14 +85,20 @@
 #pdf-meta {
 	overflow: hidden;
 	margin: 0 0 20px 0;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
 }
 
 #pdf-buttons {
-	float: left;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
 }
 
 #page-count-container {
-	float: right;
 	display: flex;
 	align-items: center;
 	gap: 0.3rem;
@@ -181,6 +187,42 @@ body {
 	padding: 6px 10px;
 	cursor: pointer;
 }
+#pdf-buttons .icon-button {
+	width: 34px;
+	height: 34px;
+	padding: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+#pdf-buttons .icon-button svg {
+	width: 18px;
+	height: 18px;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+#pdf-buttons .icon-label-button {
+	width: auto;
+	padding: 0 10px;
+	gap: 6px;
+}
+#pdf-buttons .icon-label-button span {
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1;
+}
+#scroll svg {
+	width: 22px;
+	height: 22px;
+	stroke-width: 3;
+}
+#scroll svg .center-dot {
+	fill: currentColor;
+	stroke: none;
+}
 #pdf-buttons button:hover {
 	background-color: #0f4d76;
 }
@@ -188,6 +230,7 @@ body {
 	border-radius: 6px;
 	border: 1px solid rgba(0, 0, 0, 0.3);
 	padding: 4px 8px;
+	height: 34px;
 }
 .annotationLayer {
 	position: absolute;

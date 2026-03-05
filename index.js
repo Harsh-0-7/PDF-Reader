@@ -7,6 +7,7 @@ let __PDF_DOC,
   pageHeight = -1,
   defaultPageHeight = 0,
   viewingPage = __CURRENT_PAGE,
+  isTtsActive = false,
   scrollHandlerBound = false,
   pageElementsByNumber = new Map(),
   currentSpeechMap = null,
@@ -24,9 +25,25 @@ const ui = {
   $tocDialog: $("#pdf-toc-dialog"),
   $uploadButton: $("#upload-button"),
   $fileToUpload: $("#file-to-upload"),
+  $scrollButton: $("#scroll"),
   $resumeButton: $("#resume-button"),
   $pauseButton: $("#pause-button"),
 };
+
+function setReadingControlsVisible(isVisible) {
+  isTtsActive = isVisible;
+  updateReadingButtonVisibility();
+  if (isVisible) return;
+  ui.$pauseButton.hide();
+  ui.$resumeButton.hide();
+}
+
+function updateReadingButtonVisibility() {
+  if (isTtsActive && viewingPage !== __CURRENT_PAGE) ui.$scrollButton.show();
+  else ui.$scrollButton.hide();
+}
+
+setReadingControlsVisible(false);
 
 function populateVoiceList() {
   let voiceSelect = document.getElementById("voiceSelect");
@@ -106,13 +123,18 @@ function jumpToPage(value) {
   if (!__PDF_DOC) return;
   let target = normalizePageNumber(value);
   if (!target) {
-    ui.$pdfCurrentPage.val(__CURRENT_PAGE || 1);
+    ui.$pdfCurrentPage.val(viewingPage || 1);
     return;
   }
-  __CURRENT_PAGE = target;
+  viewingPage = target;
+  if (!isTtsActive) __CURRENT_PAGE = target;
   ui.$pdfCurrentPage.val(target);
+  updateReadingButtonVisibility();
   loadPage(target);
-  scrollToCurrentPage();
+  let targetElement =
+    document.querySelector(`.page-shell[data-page="${target}"]`) ||
+    document.getElementById("page" + target);
+  if (targetElement) targetElement.scrollIntoView();
 }
 
 async function resolveOutlinePageNumber(outlineItem) {
@@ -176,7 +198,7 @@ function setTocOpen(isOpen) {
   } else if (ui.$tocDialog.prop("open")) {
     ui.$tocDialog.get(0).close();
   }
-  ui.$tocToggle.text("Contents");
+  ui.$tocToggle.attr("aria-expanded", isOpen ? "true" : "false");
 }
 
 function getPage(pageNumber) {
@@ -243,12 +265,15 @@ function handleSpeechEnd() {
     prevId = 0;
     startTextToSpeech();
     scrollToCurrentPage();
+    return;
   }
+  setReadingControlsVisible(false);
 }
 
 function startSpeech(text, keepSpeechMap, shouldRefine) {
   if (synth.speaking) synth.cancel();
   if (!keepSpeechMap) currentSpeechMap = null;
+  setReadingControlsVisible(true);
   let voices = synth
     .getVoices()
     .filter((voice) => voice.lang.substring(0, 2) === "en");
@@ -259,7 +284,10 @@ function startSpeech(text, keepSpeechMap, shouldRefine) {
     utterance.voice = voices[selectedIndex] || null;
   }
   utterance.text = shouldRefine === false ? text : refineText(text);
-  utterance.onerror = (error) => handleError(error, "speech");
+  utterance.onerror = (error) => {
+    setReadingControlsVisible(false);
+    handleError(error, "speech");
+  };
   utterance.onboundary = handleSpeechBoundary;
   utterance.onend = handleSpeechEnd;
   synth.speak(utterance);
@@ -267,6 +295,8 @@ function startSpeech(text, keepSpeechMap, shouldRefine) {
 }
 
 function startSpeechFromWords(words, pageStartWordIndex) {
+  viewingPage = __CURRENT_PAGE;
+  updateReadingButtonVisibility();
   let pageElements = getPageElements(__CURRENT_PAGE);
   if (!pageElements.wordStarts || !pageElements.speechText) {
     cachePageData(pageElements, words.join(" "), words);
@@ -437,6 +467,7 @@ function showPDF(pdf_url) {
       clearHighlightedWord(__CURRENT_PAGE, prevId);
       __CURRENT_PAGE = 1;
       prevId = 0;
+      setReadingControlsVisible(false);
       ui.$pdfLoader.hide();
       ui.$pdfContents.show();
       ui.$pdfTotalPages.text(__TOTAL_PAGES);
@@ -545,7 +576,7 @@ function getPageHeight() {
 }
 
 function estimateCurrentPage() {
-  if (!defaultPageHeight) return __CURRENT_PAGE;
+  if (!defaultPageHeight) return viewingPage || __CURRENT_PAGE;
   let estimated =
     Math.floor(window.scrollY / (defaultPageHeight + pageGap)) + 1;
   return Math.min(Math.max(estimated, 1), __TOTAL_PAGES || 1);
@@ -569,8 +600,10 @@ function ensureScrollHandler() {
     if (pageHeight <= 0) pageHeight = getPageHeight();
     if (__TOTAL_PAGES) {
       let estimatedPage = estimateCurrentPage();
-      __CURRENT_PAGE = estimatedPage;
+      viewingPage = estimatedPage;
+      if (!isTtsActive) __CURRENT_PAGE = estimatedPage;
       currentPageElement.value = estimatedPage;
+      updateReadingButtonVisibility();
       loadPagesAround(estimatedPage);
     }
   });
@@ -580,8 +613,7 @@ function ensureScrollHandler() {
 
 ui.$uploadButton.on("click", function () {
   ui.$fileToUpload.trigger("click");
-  ui.$pauseButton.hide();
-  ui.$resumeButton.hide();
+  setReadingControlsVisible(false);
 });
 ui.$pdfContainer.on("click", ".textLayer span", function () {
   let parts = this.id ? this.id.split("-") : [];
