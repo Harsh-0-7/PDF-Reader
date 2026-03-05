@@ -15,6 +15,8 @@ let __PDF_DOC,
 
 const pageGap = 30;
 const ui = {
+  $landingPage: $("#landing-page"),
+  $pdfMainContainer: $("#pdf-main-container"),
   $pdfLoader: $("#pdf-loader"),
   $pdfContents: $("#pdf-contents"),
   $pdfTotalPages: $("#pdf-total-pages"),
@@ -30,6 +32,16 @@ const ui = {
   $pauseButton: $("#pause-button"),
 };
 
+function setAppMode(mode) {
+  if (mode === "viewer") {
+    ui.$landingPage.hide();
+    ui.$pdfMainContainer.show();
+    return;
+  }
+  ui.$pdfMainContainer.hide();
+  ui.$landingPage.show();
+}
+
 function setReadingControlsVisible(isVisible) {
   isTtsActive = isVisible;
   updateReadingButtonVisibility();
@@ -44,6 +56,7 @@ function updateReadingButtonVisibility() {
 }
 
 setReadingControlsVisible(false);
+setAppMode("landing");
 
 function populateVoiceList() {
   let voiceSelect = document.getElementById("voiceSelect");
@@ -454,6 +467,8 @@ function getPageElements(pageNumber) {
 }
 
 function showPDF(pdf_url) {
+  setAppMode("viewer");
+  ui.$pdfContents.hide();
   ui.$pdfLoader.show();
   PDFJS.getDocument({ url: pdf_url })
     .then(function (pdf_doc) {
@@ -477,7 +492,12 @@ function showPDF(pdf_url) {
       loadTableOfContents();
       setTocOpen(false);
     })
-    .catch((error) => handleError(error, "pdf-load"));
+    .catch((error) => {
+      setReadingControlsVisible(false);
+      ui.$pdfLoader.hide();
+      setAppMode("landing");
+      handleError(error, "pdf-load");
+    });
 }
 
 async function showPage(pageNumber, canvas, ctx) {
@@ -666,14 +686,14 @@ $(document).on("keydown", function (event) {
   if (synth.speaking) pause();
 });
 ui.$fileToUpload.on("change", function () {
-  if (
-    ["application/pdf"].indexOf(ui.$fileToUpload.get(0).files[0].type) == -1
-  ) {
+  let selectedFile = ui.$fileToUpload.get(0).files[0];
+  if (!selectedFile) return;
+  if (["application/pdf"].indexOf(selectedFile.type) == -1) {
     alert("Error : Not a PDF");
     return;
   }
-  ui.$uploadButton.hide();
-  showPDF(URL.createObjectURL(ui.$fileToUpload.get(0).files[0]));
+  setAppMode("viewer");
+  showPDF(URL.createObjectURL(selectedFile));
 });
 
 function resume() {

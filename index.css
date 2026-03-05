@@ -1,7 +1,67 @@
+body {
+	margin: 0;
+	min-height: 100vh;
+	background-color: rgb(51, 51, 51);
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#landing-page {
+	min-height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+	background: radial-gradient(
+		circle at 15% 20%,
+		rgba(124, 184, 206, 0.25),
+		transparent 42%
+	);
+}
+
+#landing-card {
+	width: min(520px, 92vw);
+	padding: 34px 28px;
+	border-radius: 14px;
+	text-align: center;
+	background: rgba(236, 247, 254, 0.94);
+	border: 1px solid rgba(8, 48, 74, 0.16);
+	box-shadow: 0 22px 40px rgba(3, 16, 28, 0.28);
+}
+
+#landing-card h1 {
+	margin: 0;
+	font-size: 32px;
+	color: #082f4a;
+	letter-spacing: 0.2px;
+}
+
+#landing-card p {
+	margin: 10px 0 22px;
+	font-size: 15px;
+	color: #2a465a;
+}
+
+#privacy-note {
+	margin: -6px 0 20px;
+	font-size: 13px;
+	color: #355366;
+}
+
 #upload-button {
-	width: 150px;
-	display: block;
-	margin: 20px auto;
+	min-width: 170px;
+	height: 42px;
+	padding: 0 18px;
+	background-color: #0b3c5d;
+	color: #ffffff;
+	border: none;
+	border-radius: 8px;
+	font-size: 15px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+#upload-button:hover {
+	background-color: #0f4d76;
 }
 
 #file-to-upload {
@@ -9,8 +69,9 @@
 }
 
 #pdf-main-container {
+	display: none;
 	width: fit-content;
-	margin: 20px auto;
+	margin: 20px auto 40px;
 }
 #pdf-body {
 	display: flex;
@@ -175,9 +236,6 @@
 	padding: 10px 10px;
 	display: flex;
 	justify-content: space-between;
-}
-body {
-	background-color: rgb(51, 51, 51);
 }
 #pdf-buttons button {
 	background-color: #0b3c5d;
