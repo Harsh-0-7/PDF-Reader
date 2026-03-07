@@ -11,7 +11,8 @@ let __PDF_DOC,
   scrollHandlerBound = false,
   pageElementsByNumber = new Map(),
   currentSpeechMap = null,
-  prevId = 0;
+  prevId = 0,
+  paragraphJumpToken = 0;
 
 const pageGap = 30;
 const ui = {
@@ -31,6 +32,8 @@ const ui = {
   $scrollButton: $("#scroll"),
   $resumeButton: $("#resume-button"),
   $pauseButton: $("#pause-button"),
+  $rewindButton: $("#rewind-button"),
+  $forwardButton: $("#forward-button"),
 };
 
 function setAppMode(mode) {
@@ -46,9 +49,15 @@ function setAppMode(mode) {
 function setReadingControlsVisible(isVisible) {
   isTtsActive = isVisible;
   updateReadingButtonVisibility();
-  if (isVisible) return;
+  if (isVisible) {
+    ui.$rewindButton.show();
+    ui.$forwardButton.show();
+    return;
+  }
   ui.$pauseButton.hide();
   ui.$resumeButton.hide();
+  ui.$rewindButton.hide();
+  ui.$forwardButton.hide();
 }
 
 function updateReadingButtonVisibility() {
@@ -392,7 +401,252 @@ function handleWordClick($wordSpan, pageNumber, wordIndex) {
     });
 }
 
-function cachePageData(pageElements, text, words) {
+function buildParagraphStartsFromWords(words) {
+  if (!words || !words.length) return [];
+  let starts = [1];
+  let wordsSinceLastBreak = 0;
+  const softBreakAfterWords = 28;
+  const hardBreakAfterWords = 90;
+  for (let i = 0; i < words.length; i++) {
+    wordsSinceLastBreak += 1;
+    let isSentenceBoundary = /[.!?]["')\]]?$/.test(words[i]);
+    if (
+      (wordsSinceLastBreak >= softBreakAfterWords && isSentenceBoundary) ||
+      wordsSinceLastBreak >= hardBreakAfterWords
+    ) {
+      if (i + 2 <= words.length) starts.push(i + 2);
+      wordsSinceLastBreak = 0;
+    }
+  }
+  return starts;
+}
+
+function normalizeParagraphStarts(starts, totalWords) {
+  if (!totalWords) return [];
+  let uniqueStarts = new Set();
+  if (Array.isArray(starts)) {
+    for (let i = 0; i < starts.length; i++) {
+      let parsed = parseInt(starts[i], 10);
+      if (!Number.isNaN(parsed) && parsed >= 1 && parsed <= totalWords)
+        uniqueStarts.add(parsed);
+    }
+  }
+  uniqueStarts.add(1);
+  return Array.from(uniqueStarts).sort((a, b) => a - b);
+}
+
+function buildTextFromItems(items) {
+  if (!items || !items.length) return "";
+  let text = "";
+  for (let i = 0; i < items.length; i++) {
+    let item = items[i] || {};
+    let raw = typeof item.str === "string" ? item.str : "";
+    if (raw) {
+      if (text && text[text.length - 1] !== "\n") text += " ";
+      text += raw;
+    }
+    if (item.hasEOL) text += "\n";
+  }
+  return text;
+}
+
+function deriveParagraphStartsFromItems(textItems, words) {
+  if (!textItems || !textItems.length) return buildParagraphStartsFromWords(words);
+  let lines = [];
+  let lineWords = [];
+  let lineText = "";
+  let lineX = null;
+  let lineY = null;
+  let lineHeight = null;
+  const commitLine = () => {
+    lines.push({
+      words: lineWords,
+      text: lineText.trim(),
+      x: lineX,
+      y: lineY,
+      height: lineHeight,
+    });
+    lineWords = [];
+    lineText = "";
+    lineX = null;
+    lineY = null;
+    lineHeight = null;
+  };
+  for (let i = 0; i < textItems.length; i++) {
+    let item = textItems[i] || {};
+    let raw = typeof item.str === "string" ? item.str : "";
+    let tokens = tokenizeText(raw);
+    let itemX =
+      item.transform && item.transform.length > 5 ? item.transform[4] : null;
+    let itemY =
+      item.transform && item.transform.length > 5 ? item.transform[5] : null;
+    let itemHeight = null;
+    if (typeof item.height === "number") itemHeight = Math.abs(item.height);
+    else if (item.transform && typeof item.transform[0] === "number")
+      itemHeight = Math.abs(item.transform[0]);
+    if (
+      lineWords.length &&
+      typeof itemY === "number" &&
+      typeof lineY === "number" &&
+      Number.isFinite(itemY) &&
+      Number.isFinite(lineY)
+    ) {
+      let verticalShift = Math.abs(itemY - lineY);
+      let referenceHeight = Math.max(lineHeight || 0, itemHeight || 0, 1);
+      if (verticalShift > referenceHeight * 0.45) commitLine();
+    }
+    if (tokens.length) {
+      lineWords = lineWords.concat(tokens);
+      if (lineText) lineText += " ";
+      lineText += raw.trim();
+      if (lineX === null && typeof itemX === "number") {
+        lineX = itemX;
+        lineY = itemY;
+      }
+      if (lineHeight === null) {
+        lineHeight = itemHeight;
+      }
+    }
+    if (item.hasEOL) commitLine();
+  }
+  if (lineWords.length || lineText) commitLine();
+  let starts = [];
+  let wordCursor = 1;
+  let previousTextLine = null;
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    if (!line.words.length) continue;
+    let isParagraphStart = starts.length === 0;
+    if (!isParagraphStart && previousTextLine) {
+      let hasLargeVerticalGap = false;
+      if (
+        typeof line.y === "number" &&
+        typeof previousTextLine.y === "number" &&
+        Number.isFinite(line.y) &&
+        Number.isFinite(previousTextLine.y)
+      ) {
+        let gap = Math.abs(previousTextLine.y - line.y);
+        let baseHeight = Math.max(
+          line.height || 0,
+          previousTextLine.height || 0,
+          1,
+        );
+        hasLargeVerticalGap = gap > baseHeight * 1.7;
+      }
+      let isIndentedLine = false;
+      if (
+        typeof line.x === "number" &&
+        typeof previousTextLine.x === "number" &&
+        Number.isFinite(line.x) &&
+        Number.isFinite(previousTextLine.x)
+      ) {
+        isIndentedLine = line.x - previousTextLine.x > 14;
+      }
+      let endedLikeSentence = /[.!?]["')\]]?$/.test(
+        (previousTextLine.text || "").trim(),
+      );
+      let startsLikeSentence = /^[A-Z0-9"“(\[]/.test(line.words[0] || "");
+      if (
+        hasLargeVerticalGap ||
+        isIndentedLine ||
+        (endedLikeSentence && startsLikeSentence)
+      ) {
+        isParagraphStart = true;
+      }
+    }
+    if (isParagraphStart) starts.push(wordCursor);
+    wordCursor += line.words.length;
+    previousTextLine = line;
+  }
+  if (!starts.length) starts = buildParagraphStartsFromWords(words);
+  return starts;
+}
+
+function findCurrentParagraphIndex(starts, currentWord) {
+  if (!starts || !starts.length) return -1;
+  let index = 0;
+  for (let i = 0; i < starts.length; i++) {
+    if (starts[i] <= currentWord) index = i;
+    else break;
+  }
+  return index;
+}
+
+async function jumpParagraph(direction) {
+  if (!__PDF_DOC) return;
+  if (direction !== 1 && direction !== -1) return;
+  let requestToken = ++paragraphJumpToken;
+  let startPage = __CURRENT_PAGE || 1;
+  let startWord = Math.max(
+    currentSpeechMap
+      ? currentSpeechMap.pageStartWordIndex + currentSpeechMap.lastWordIndex
+      : prevId,
+    1,
+  );
+  let previousPage = __CURRENT_PAGE;
+  let previousWord = prevId;
+  let page = startPage;
+  while (page >= 1 && page <= (__TOTAL_PAGES || 1)) {
+    let pageElements;
+    try {
+      pageElements = await getPageData(page);
+    } catch (error) {
+      handleError(error, "paragraph-jump");
+      return;
+    }
+    if (requestToken !== paragraphJumpToken) return;
+    let words = pageElements.words || [];
+    if (!words.length) {
+      page += direction;
+      continue;
+    }
+    let paragraphStarts = normalizeParagraphStarts(
+      pageElements.paragraphStarts || buildParagraphStartsFromWords(words),
+      words.length,
+    );
+    let targetWord = null;
+    if (direction > 0) {
+      let threshold = page === startPage ? startWord : 0;
+      for (let i = 0; i < paragraphStarts.length; i++) {
+        if (paragraphStarts[i] > threshold) {
+          targetWord = paragraphStarts[i];
+          break;
+        }
+      }
+    } else if (page === startPage) {
+      let paragraphIndex = findCurrentParagraphIndex(paragraphStarts, startWord);
+      if (paragraphIndex > 0) targetWord = paragraphStarts[paragraphIndex - 1];
+    } else {
+      targetWord = paragraphStarts[paragraphStarts.length - 1];
+    }
+    if (targetWord) {
+      clearHighlightedWord(previousPage, previousWord);
+      __CURRENT_PAGE = page;
+      viewingPage = page;
+      ui.$pdfCurrentPage.val(page);
+      loadPage(page);
+      if (page !== startPage) scrollToCurrentPage();
+      prevId = Math.max(targetWord - 1, 0);
+      startSpeechFromWords(words, targetWord);
+      return;
+    }
+    page += direction;
+  }
+}
+
+function forwardParagraph() {
+  if (!synth) return;
+  if (!isTtsActive && !synth.speaking && !currentSpeechMap) return;
+  jumpParagraph(1);
+}
+
+function rewindParagraph() {
+  if (!synth) return;
+  if (!isTtsActive && !synth.speaking && !currentSpeechMap) return;
+  jumpParagraph(-1);
+}
+
+function cachePageData(pageElements, text, words, paragraphStarts) {
   let resolvedWords = words || tokenizeText(text);
   let wordStarts = [];
   let speechText = "";
@@ -410,6 +664,10 @@ function cachePageData(pageElements, text, words) {
   Object.assign(pageElements, {
     text,
     words: resolvedWords,
+    paragraphStarts: normalizeParagraphStarts(
+      paragraphStarts || buildParagraphStartsFromWords(resolvedWords),
+      resolvedWords.length,
+    ),
     wordStarts,
     speechText,
   });
@@ -424,12 +682,13 @@ function getPageData(pageNumber) {
     return Promise.resolve(cachePageData(pageElements, pageElements.text));
   return getPage(pageNumber)
     .then((page) => page.getTextContent())
-    .then((content) =>
-      cachePageData(
-        pageElements,
-        content.items.map((item) => item.str).join(" "),
-      ),
-    );
+    .then((content) => {
+      let items = content.items || [];
+      let text = buildTextFromItems(items);
+      let words = tokenizeText(text);
+      let paragraphStarts = deriveParagraphStartsFromItems(items, words);
+      return cachePageData(pageElements, text, words, paragraphStarts);
+    });
 }
 
 function tokenizeText(textContent) {
@@ -467,6 +726,7 @@ function getPageElements(pageNumber) {
     renderPromise: null,
     text: null,
     words: null,
+    paragraphStarts: null,
     wordStarts: null,
     speechText: null,
   };
@@ -595,7 +855,11 @@ function wrapTextLayerWordsFromItems(pageNumber, textItems) {
       })
       .join("");
   }
-  cachePageData(getPageElements(pageNumber), rawTextParts.join(" "), words);
+  let pageText = buildTextFromItems(
+    textItems && textItems.length ? textItems : rawTextParts.map((text) => ({ str: text })),
+  );
+  let paragraphStarts = deriveParagraphStartsFromItems(textItems || [], words);
+  cachePageData(getPageElements(pageNumber), pageText, words, paragraphStarts);
 }
 
 function getPageHeight() {
@@ -671,21 +935,30 @@ ui.$pdfCurrentPage.on("keydown", function (event) {
   this.blur();
   jumpToPage(this.value);
 });
-$(document).on("keydown", function (event) {
-  if (event.code !== "Space" && event.key !== " ") return;
-  if (event.repeat) return;
-  let target = event.target;
-  if (
+function isEditableTarget(target) {
+  return !!(
     target &&
     (target.tagName === "INPUT" ||
       target.tagName === "TEXTAREA" ||
       target.tagName === "SELECT" ||
       target.tagName === "BUTTON" ||
       target.isContentEditable)
-  ) {
+  );
+}
+$(document).on("keydown", function (event) {
+  let target = event.target;
+  if (isEditableTarget(target)) return;
+  if (!synth) return;
+  if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+    if (event.repeat) return;
+    if (!isTtsActive && !synth.speaking && !currentSpeechMap) return;
+    event.preventDefault();
+    if (event.key === "ArrowRight") forwardParagraph();
+    else rewindParagraph();
     return;
   }
-  if (!synth) return;
+  if (event.code !== "Space" && event.key !== " ") return;
+  if (event.repeat) return;
   event.preventDefault();
   if (ui.$resumeButton.is(":visible")) {
     resume();
@@ -733,3 +1006,5 @@ function scrollToCurrentPage() {
 
 window.startTextToSpeech = startTextToSpeech;
 window.scrollToCurrentPage = scrollToCurrentPage;
+window.forwardParagraph = forwardParagraph;
+window.rewindParagraph = rewindParagraph;

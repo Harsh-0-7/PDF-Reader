@@ -90,32 +90,58 @@
 							</svg>
 							<span>Reading</span>
 						</button>
-						<button
-							id="resume-button"
-							class="icon-button"
-							type="button"
-							onclick="resume()"
-							title="Resume"
-							aria-label="Resume"
-						>
-							<svg viewBox="0 0 24 24" aria-hidden="true">
-								<polygon points="8 5 19 12 8 19 8 5"></polygon>
-							</svg>
-						</button>
-						<button
-							id="pause-button"
-							class="icon-button"
-							type="button"
-							onclick="pause()"
-							title="Pause"
-							aria-label="Pause"
-						>
-							<svg viewBox="0 0 24 24" aria-hidden="true">
-								<rect x="6" y="5" width="4" height="14"></rect>
-								<rect x="14" y="5" width="4" height="14"></rect>
-							</svg>
-						</button>
-						<select id="voiceSelect"></select>
+							<button
+								id="rewind-button"
+								class="icon-button"
+								type="button"
+								onclick="rewindParagraph()"
+								title="Previous Paragraph (Left Arrow)"
+								aria-label="Previous Paragraph"
+							>
+								<svg viewBox="0 0 24 24" aria-hidden="true">
+									<polygon points="11 7 4 12 11 17 11 7"></polygon>
+									<line x1="18" y1="7" x2="18" y2="17"></line>
+								</svg>
+							</button>
+							<button
+								id="resume-button"
+								class="icon-button"
+								type="button"
+								onclick="resume()"
+								title="Resume"
+								aria-label="Resume"
+							>
+								<svg viewBox="0 0 24 24" aria-hidden="true">
+									<polygon points="8 5 19 12 8 19 8 5"></polygon>
+								</svg>
+							</button>
+							<button
+								id="pause-button"
+								class="icon-button"
+								type="button"
+								onclick="pause()"
+								title="Pause"
+								aria-label="Pause"
+							>
+								<svg viewBox="0 0 24 24" aria-hidden="true">
+									<rect x="6" y="5" width="4" height="14"></rect>
+									<rect x="14" y="5" width="4" height="14"></rect>
+								</svg>
+							</button>
+							<button
+								id="forward-button"
+								class="icon-button"
+								type="button"
+								onclick="forwardParagraph()"
+								title="Next Paragraph (Right Arrow)"
+								aria-label="Next Paragraph"
+							>
+								<svg viewBox="0 0 24 24" aria-hidden="true">
+									<polygon points="13 7 20 12 13 17 13 7"></polygon>
+									<line x1="6" y1="7" x2="6" y2="17"></line>
+								</svg>
+							</button>
+							<select id="voiceSelect"></select>
 						<select
 							id="speech-rate"
 							aria-label="Reading speed"
