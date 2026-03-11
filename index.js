@@ -734,6 +734,17 @@ function getPageElements(pageNumber) {
   return pageElements;
 }
 
+function getLayerMetricsForCanvas(canvas, wrapper) {
+  let canvasOffset = $(canvas).offset() || { left: 0, top: 0 };
+  let wrapperOffset = wrapper ? $(wrapper).offset() || { left: 0, top: 0 } : { left: 0, top: 0 };
+  return {
+    left: canvasOffset.left - wrapperOffset.left,
+    top: canvasOffset.top - wrapperOffset.top,
+    width: canvas.width || 0,
+    height: canvas.height || 0,
+  };
+}
+
 function showPDF(pdf_url) {
   setAppMode("viewer");
   ui.$pdfContents.hide();
@@ -794,17 +805,18 @@ async function showPage(pageNumber, canvas, ctx) {
     ]);
     let pageElements = getPageElements(pageNumber);
     let wrapper = pageElements.wrapper;
-    if (wrapper) wrapper.style.minHeight = canvas.height + "px";
+    if (wrapper) wrapper.style.minHeight = (canvas.offsetHeight || canvas.height) + "px";
+    let layerMetrics = getLayerMetricsForCanvas(canvas, wrapper);
     if (annotationData.length) {
       let annotationLayer = pageElements.annotationLayer;
       $(annotationLayer)
         .html("")
         .show()
         .css({
-          left: "0px",
-          top: "0px",
-          height: canvas.height + "px",
-          width: canvas.width + "px",
+          left: layerMetrics.left + "px",
+          top: layerMetrics.top + "px",
+          height: layerMetrics.height + "px",
+          width: layerMetrics.width + "px",
         });
       try {
         PDFJS.AnnotationLayer.render({
@@ -817,10 +829,10 @@ async function showPage(pageNumber, canvas, ctx) {
     }
     let textLayer = pageElements.textLayer;
     $(textLayer).css({
-      left: "0px",
-      top: "0px",
-      height: canvas.height + "px",
-      width: canvas.width + "px",
+      left: layerMetrics.left + "px",
+      top: layerMetrics.top + "px",
+      height: layerMetrics.height + "px",
+      width: layerMetrics.width + "px",
     });
     let textTask = PDFJS.renderTextLayer({
       textContent: text,
@@ -844,8 +856,10 @@ function wrapTextLayerWordsFromItems(pageNumber, textItems) {
   let rawTextParts = [];
   for (let i = 0; i < allDivs.length; i++) {
     let element = allDivs[i];
-    let rawText =
-      i < textItems.length ? textItems[i].str || "" : element.textContent || "";
+    // Use the rendered text-layer content as the source of truth for span wrapping.
+    // pdf.js text item order/segmentation is not guaranteed to be 1:1 with text divs.
+    let rawText = element.textContent || "";
+    if (!rawText && i < textItems.length) rawText = textItems[i].str || "";
     rawTextParts.push(rawText);
     let tokens = tokenizeText(rawText);
     element.innerHTML = tokens
@@ -855,9 +869,7 @@ function wrapTextLayerWordsFromItems(pageNumber, textItems) {
       })
       .join("");
   }
-  let pageText = buildTextFromItems(
-    textItems && textItems.length ? textItems : rawTextParts.map((text) => ({ str: text })),
-  );
+  let pageText = refineText(rawTextParts.join(" "));
   let paragraphStarts = deriveParagraphStartsFromItems(textItems || [], words);
   cachePageData(getPageElements(pageNumber), pageText, words, paragraphStarts);
 }
