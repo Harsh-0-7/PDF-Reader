@@ -736,13 +736,24 @@ function getPageElements(pageNumber) {
 
 function getLayerMetricsForCanvas(canvas, wrapper) {
   let canvasOffset = $(canvas).offset() || { left: 0, top: 0 };
-  let wrapperOffset = wrapper ? $(wrapper).offset() || { left: 0, top: 0 } : { left: 0, top: 0 };
+  let wrapperOffset = wrapper
+    ? $(wrapper).offset() || { left: 0, top: 0 }
+    : { left: 0, top: 0 };
   return {
     left: canvasOffset.left - wrapperOffset.left,
     top: canvasOffset.top - wrapperOffset.top,
     width: canvas.width || 0,
     height: canvas.height || 0,
   };
+}
+
+function applyLayerMetrics(layer, metrics) {
+  $(layer).css({
+    left: metrics.left + "px",
+    top: metrics.top + "px",
+    height: metrics.height + "px",
+    width: metrics.width + "px",
+  });
 }
 
 function showPDF(pdf_url) {
@@ -805,19 +816,13 @@ async function showPage(pageNumber, canvas, ctx) {
     ]);
     let pageElements = getPageElements(pageNumber);
     let wrapper = pageElements.wrapper;
-    if (wrapper) wrapper.style.minHeight = (canvas.offsetHeight || canvas.height) + "px";
+    if (wrapper)
+      wrapper.style.minHeight = (canvas.offsetHeight || canvas.height) + "px";
     let layerMetrics = getLayerMetricsForCanvas(canvas, wrapper);
     if (annotationData.length) {
       let annotationLayer = pageElements.annotationLayer;
-      $(annotationLayer)
-        .html("")
-        .show()
-        .css({
-          left: layerMetrics.left + "px",
-          top: layerMetrics.top + "px",
-          height: layerMetrics.height + "px",
-          width: layerMetrics.width + "px",
-        });
+      $(annotationLayer).html("").show();
+      applyLayerMetrics(annotationLayer, layerMetrics);
       try {
         PDFJS.AnnotationLayer.render({
           viewport: viewport.clone({ dontFlip: true }),
@@ -828,12 +833,7 @@ async function showPage(pageNumber, canvas, ctx) {
       } catch {}
     }
     let textLayer = pageElements.textLayer;
-    $(textLayer).css({
-      left: layerMetrics.left + "px",
-      top: layerMetrics.top + "px",
-      height: layerMetrics.height + "px",
-      width: layerMetrics.width + "px",
-    });
+    applyLayerMetrics(textLayer, layerMetrics);
     let textTask = PDFJS.renderTextLayer({
       textContent: text,
       container: textLayer,
@@ -841,7 +841,7 @@ async function showPage(pageNumber, canvas, ctx) {
       textDivs: [],
     });
     if (textTask && textTask.promise) await textTask.promise;
-    wrapTextLayerWordsFromItems(pageNumber, text.items || []);
+    wrapTextLayerWordsFromItems(pageNumber, text.items || [], textLayer);
     pageElements.rendered = true;
     ensureScrollHandler();
   } catch (error) {
@@ -849,8 +849,11 @@ async function showPage(pageNumber, canvas, ctx) {
   }
 }
 
-function wrapTextLayerWordsFromItems(pageNumber, textItems) {
-  let allDivs = document.querySelectorAll(`#textLayer${pageNumber} > div`);
+function wrapTextLayerWordsFromItems(pageNumber, textItems, textLayerElement) {
+  let textLayer =
+    textLayerElement || document.getElementById(`textLayer${pageNumber}`);
+  if (!textLayer) return;
+  let allDivs = textLayer.querySelectorAll("div");
   let wordIndex = 1;
   let words = [];
   let rawTextParts = [];
@@ -869,7 +872,10 @@ function wrapTextLayerWordsFromItems(pageNumber, textItems) {
       })
       .join("");
   }
-  let pageText = refineText(rawTextParts.join(" "));
+  let pageText =
+    textItems && textItems.length
+      ? buildTextFromItems(textItems)
+      : refineText(rawTextParts.join(" "));
   let paragraphStarts = deriveParagraphStartsFromItems(textItems || [], words);
   cachePageData(getPageElements(pageNumber), pageText, words, paragraphStarts);
 }
