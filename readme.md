@@ -4,7 +4,7 @@
 
 Main feature of this reader is to use read aloud feature for free.
 
-### Works on Edge Browser only
+### Some voices in chrome might not support text highlighting sync.
 
 ## How to Use?
 
@@ -17,11 +17,15 @@ Main feature of this reader is to use read aloud feature for free.
 - [ ] Add Resize Page Buttons
 - [ ] Skip Header/footers,vertical text,text in brackets
 - [ ] Make responsive
-- [ ] Create Extension
-- [ ] Create Mobile App
-- [ ] Make links clickable
 - [ ] Try base64
 - [ ] Use Canvas.before insert method to add textlayer
+- [ ] Research on other free ways to get better tts or text highlighting sync
+- [ ] Integrate Open AI tts models with text highlighting sync
+- [ ] Upgrade pdf.js version
+- [ ] Use better text highlighting syncing strategy
+- [ ] Support sentence/paragraph level highlighting
+- [ ] Use service workers to improve performance
+- [ ] Use Cache/indexeddb for storing render pages for better performance
 
 ## Contribute to development
 
@@ -32,8 +36,7 @@ $ git clone https://github.com/Harsh-0-7/PDF-Reader.git
 # Move to working directory
 $ cd PDF-Reader
 
-# Install dependencies
-$ npm install
+# Open index.html
 ```
 
 ## Have you found a bug?
