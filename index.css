@@ -70,20 +70,26 @@ body {
 
 #pdf-main-container {
 	display: none;
-	width: fit-content;
+	width: min(100%, 1048px);
 	margin: 20px auto 40px;
+	padding: 0 12px;
+	box-sizing: border-box;
 }
 #pdf-body {
 	display: flex;
 	align-items: flex-start;
 	justify-content: center;
+	width: 100%;
 }
 #pdfContainer {
 	display: block;
+	width: 100%;
 }
 .page-shell {
 	position: relative;
 	margin-bottom: 30px;
+	display: flex;
+	justify-content: center;
 }
 #pdf-toc-dialog {
 	width: min(520px, 90vw);
@@ -144,30 +150,56 @@ body {
 }
 
 #pdf-meta {
-	overflow: hidden;
-	margin: 0 0 20px 0;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
+	overflow: visible;
+	margin: 0 0 16px 0;
+	width: 100%;
+	box-sizing: border-box;
 }
 
 #pdf-buttons {
 	display: flex;
+	flex-wrap: nowrap;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	min-width: 0;
+}
+.controls-row {
+	display: flex;
 	align-items: center;
 	gap: 8px;
-	flex-wrap: wrap;
+	min-width: 0;
+}
+.controls-actions {
+	flex: 0 0 auto;
+	flex-wrap: nowrap;
+}
+.controls-voice #voiceSelect {
+	width: 100%;
+}
+.controls-voice {
+	flex: 1 1 auto;
+	min-width: 220px;
+}
+.controls-footer {
+	flex: 0 0 auto;
+	justify-content: flex-end;
+	gap: 10px;
 }
 
 #page-count-container {
-	display: flex;
+	display: inline-flex;
 	align-items: center;
-	gap: 0.3rem;
+	gap: 0.35rem;
+	white-space: nowrap;
+	padding: 4px 8px;
+	border-radius: 8px;
+	background-color: rgba(255, 255, 255, 0.55);
 }
 
 #pdf-current-page {
 	display: inline-block;
-	width: 40px;
+	width: 48px;
 	padding: 4px 6px;
 	border: 1px solid rgba(0, 0, 0, 0.3);
 	border-radius: 4px;
@@ -231,11 +263,13 @@ body {
 	position: -webkit-sticky;
 	position: sticky;
 	top: 0;
-	background-color: lightblue;
-	z-index: 1;
-	padding: 10px 10px;
-	display: flex;
-	justify-content: space-between;
+	background: linear-gradient(180deg, #b9e8f8 0%, #a7d9eb 100%);
+	z-index: 10;
+	padding: 10px;
+	display: block;
+	border-radius: 10px;
+	border: 1px solid rgba(255, 255, 255, 0.35);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
 }
 #pdf-buttons button {
 	background-color: #0b3c5d;
@@ -246,8 +280,8 @@ body {
 	cursor: pointer;
 }
 #pdf-buttons .icon-button {
-	width: 34px;
-	height: 34px;
+	width: 36px;
+	height: 36px;
 	padding: 0;
 	display: inline-flex;
 	align-items: center;
@@ -288,7 +322,14 @@ body {
 	border-radius: 6px;
 	border: 1px solid rgba(0, 0, 0, 0.3);
 	padding: 4px 8px;
-	height: 34px;
+	height: 38px;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+#voiceSelect {
+	flex: 1 1 auto;
+	min-width: 0;
+	max-width: 100%;
 }
 #speech-rate {
 	width: 56px !important;
@@ -297,6 +338,61 @@ body {
 	flex: 0 0 56px;
 	padding: 2px 4px;
 	box-sizing: border-box;
+}
+@media (max-width: 900px) {
+	#pdf-meta {
+		padding: 8px;
+	}
+	#pdf-buttons {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 8px;
+	}
+	.controls-actions {
+		flex-wrap: wrap;
+	}
+	.controls-voice {
+		min-width: 0;
+	}
+	.controls-row {
+		gap: 6px;
+	}
+	.controls-footer {
+		justify-content: space-between;
+		flex-wrap: wrap;
+	}
+	#page-count-container {
+		padding: 4px 6px;
+	}
+}
+@media (max-width: 460px) {
+	#pdf-meta {
+		padding: 7px;
+	}
+	.controls-actions {
+		display: grid;
+		grid-template-columns: repeat(6, minmax(0, 1fr));
+		gap: 6px;
+	}
+	#pdf-buttons .controls-actions .icon-button {
+		width: 100%;
+	}
+	#pdf-buttons .icon-label-button {
+		padding: 0;
+	}
+	#pdf-buttons .icon-label-button span {
+		display: none;
+	}
+	#pdf-buttons select {
+		height: 36px;
+	}
+	#page-count-container {
+		font-size: 15px;
+	}
+	#pdf-current-page {
+		width: 44px;
+	}
 }
 .annotationLayer {
 	position: absolute;

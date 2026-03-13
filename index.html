@@ -45,51 +45,52 @@
 					class="navBar"
 				>
 					<div id="pdf-buttons">
-						<button
-							id="toc-toggle"
-							class="icon-button"
-							type="button"
-							title="Contents"
-							aria-label="Contents"
-							aria-expanded="false"
-						>
-							<svg viewBox="0 0 24 24" aria-hidden="true">
-								<line x1="4" y1="6" x2="20" y2="6"></line>
-								<line x1="4" y1="12" x2="20" y2="12"></line>
-								<line x1="4" y1="18" x2="20" y2="18"></line>
-							</svg>
-						</button>
-						<button
-							class="icon-button"
-							type="button"
-							onclick="startTextToSpeech()"
-							title="Read Aloud"
-							aria-label="Read Aloud"
-						>
-							<svg viewBox="0 0 24 24" aria-hidden="true">
-								<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-								<path d="M15.5 8.5a5 5 0 0 1 0 7"></path>
-								<path d="M18.5 6a9 9 0 0 1 0 12"></path>
-							</svg>
-						</button>
-						<button
-							id="scroll"
-							class="icon-button icon-label-button"
-							type="button"
-							onclick="scrollToCurrentPage()"
-							title="Go to Reading Page"
-							aria-label="Go to Reading Page"
-						>
-							<svg viewBox="0 0 24 24" aria-hidden="true">
-								<circle cx="12" cy="12" r="7.5"></circle>
-								<circle class="center-dot" cx="12" cy="12" r="3.6"></circle>
-								<path d="M12 1.5v3.5"></path>
-								<path d="M12 19v3.5"></path>
-								<path d="M1.5 12h3.5"></path>
-								<path d="M19 12h3.5"></path>
-							</svg>
-							<span>Reading</span>
-						</button>
+						<div class="controls-row controls-actions">
+							<button
+								id="toc-toggle"
+								class="icon-button"
+								type="button"
+								title="Contents"
+								aria-label="Contents"
+								aria-expanded="false"
+							>
+								<svg viewBox="0 0 24 24" aria-hidden="true">
+									<line x1="4" y1="6" x2="20" y2="6"></line>
+									<line x1="4" y1="12" x2="20" y2="12"></line>
+									<line x1="4" y1="18" x2="20" y2="18"></line>
+								</svg>
+							</button>
+							<button
+								class="icon-button"
+								type="button"
+								onclick="startTextToSpeech()"
+								title="Read Aloud"
+								aria-label="Read Aloud"
+							>
+								<svg viewBox="0 0 24 24" aria-hidden="true">
+									<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+									<path d="M15.5 8.5a5 5 0 0 1 0 7"></path>
+									<path d="M18.5 6a9 9 0 0 1 0 12"></path>
+								</svg>
+							</button>
+							<button
+								id="scroll"
+								class="icon-button icon-label-button"
+								type="button"
+								onclick="scrollToCurrentPage()"
+								title="Go to Reading Page"
+								aria-label="Go to Reading Page"
+							>
+								<svg viewBox="0 0 24 24" aria-hidden="true">
+									<circle cx="12" cy="12" r="7.5"></circle>
+									<circle class="center-dot" cx="12" cy="12" r="3.6"></circle>
+									<path d="M12 1.5v3.5"></path>
+									<path d="M12 19v3.5"></path>
+									<path d="M1.5 12h3.5"></path>
+									<path d="M19 12h3.5"></path>
+								</svg>
+								<span>Reading</span>
+							</button>
 							<button
 								id="rewind-button"
 								class="icon-button"
@@ -141,32 +142,36 @@
 									<line x1="6" y1="7" x2="6" y2="17"></line>
 								</svg>
 							</button>
+						</div>
+						<div class="controls-row controls-voice">
 							<select id="voiceSelect"></select>
-						<select
-							id="speech-rate"
-							aria-label="Reading speed"
-							title="Reading speed"
-						>
-							<option value="0.75">0.75x</option>
-							<option value="1" selected>1x</option>
-							<option value="1.25">1.25x</option>
-							<option value="1.5">1.5x</option>
-							<option value="1.75">1.75x</option>
-							<option value="2">2x</option>
-						</select>
-					</div>
-
-					<div id="page-count-container">
-						Page
-						<input
-							type="number"
-							id="pdf-current-page"
-							min="1"
-							value="1"
-							aria-label="Current page"
-						/>
-						of
-						<div id="pdf-total-pages"></div>
+						</div>
+						<div class="controls-row controls-footer">
+							<select
+								id="speech-rate"
+								aria-label="Reading speed"
+								title="Reading speed"
+							>
+								<option value="0.75">0.75x</option>
+								<option value="1" selected>1x</option>
+								<option value="1.25">1.25x</option>
+								<option value="1.5">1.5x</option>
+								<option value="1.75">1.75x</option>
+								<option value="2">2x</option>
+							</select>
+							<div id="page-count-container">
+								Page
+								<input
+									type="number"
+									id="pdf-current-page"
+									min="1"
+									value="1"
+									aria-label="Current page"
+								/>
+								of
+								<div id="pdf-total-pages"></div>
+							</div>
+						</div>
 					</div>
 				</div>
 				<div id="pdf-body">

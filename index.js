@@ -1,9 +1,11 @@
 let synth = window.speechSynthesis;
 let utterance = new SpeechSynthesisUtterance();
+const maxCanvasWidth = 1000;
+const minCanvasWidth = 180;
 let __PDF_DOC,
   __CURRENT_PAGE = 1,
   __TOTAL_PAGES,
-  canvas_width = 1000,
+  canvas_width = maxCanvasWidth,
   pageHeight = -1,
   defaultPageHeight = 0,
   viewingPage = __CURRENT_PAGE,
@@ -20,6 +22,7 @@ const ui = {
   $pdfMainContainer: $("#pdf-main-container"),
   $pdfLoader: $("#pdf-loader"),
   $pdfContents: $("#pdf-contents"),
+  $pdfBody: $("#pdf-body"),
   $pdfTotalPages: $("#pdf-total-pages"),
   $pdfCurrentPage: $("#pdf-current-page"),
   $pdfContainer: $("#pdfContainer"),
@@ -110,6 +113,24 @@ function rafThrottle(handler) {
       handler();
     });
   };
+}
+
+function getResponsiveCanvasWidth() {
+  let bodyElement = ui.$pdfBody.get(0);
+  let mainContainerElement = ui.$pdfMainContainer.get(0);
+  let availableWidth =
+    (bodyElement && bodyElement.clientWidth) ||
+    (mainContainerElement && mainContainerElement.clientWidth) ||
+    window.innerWidth ||
+    document.documentElement.clientWidth ||
+    maxCanvasWidth;
+  let horizontalPadding = availableWidth <= 768 ? 16 : 32;
+  let targetWidth = Math.floor(availableWidth - horizontalPadding);
+  return Math.min(maxCanvasWidth, Math.max(minCanvasWidth, targetWidth));
+}
+
+function syncCanvasWidthToViewport() {
+  canvas_width = getResponsiveCanvasWidth();
 }
 
 function getPageShell(pageNumber) {
@@ -739,11 +760,13 @@ function getLayerMetricsForCanvas(canvas, wrapper) {
   let wrapperOffset = wrapper
     ? $(wrapper).offset() || { left: 0, top: 0 }
     : { left: 0, top: 0 };
+  let width = canvas.clientWidth || canvas.width || 0;
+  let height = canvas.clientHeight || canvas.height || 0;
   return {
     left: canvasOffset.left - wrapperOffset.left,
     top: canvasOffset.top - wrapperOffset.top,
-    width: canvas.width || 0,
-    height: canvas.height || 0,
+    width,
+    height,
   };
 }
 
@@ -758,12 +781,14 @@ function applyLayerMetrics(layer, metrics) {
 
 function showPDF(pdf_url) {
   setAppMode("viewer");
+  syncCanvasWidthToViewport();
   ui.$pdfContents.hide();
   ui.$pdfLoader.show();
   PDFJS.getDocument({ url: pdf_url })
     .then(function (pdf_doc) {
       __PDF_DOC = pdf_doc;
       __TOTAL_PAGES = __PDF_DOC.numPages;
+      syncCanvasWidthToViewport();
       viewingPage = 1;
       pageElementsByNumber.clear();
       pageHeight = -1;
