@@ -26,6 +26,7 @@ Main feature of this reader is to use read aloud feature for free.
 - [ ] Support sentence/paragraph level highlighting
 - [ ] Use service workers to improve performance
 - [ ] Use Cache/indexeddb for storing render pages for better performance
+- [ ] Add support for article/blogs/pdf web links
 
 ## Contribute to development
 
