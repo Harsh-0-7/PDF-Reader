@@ -10,7 +10,7 @@ Main feature of this reader is to use read aloud feature for free.
 
 - Open index.html
 - Upload PDF
-- Click on Read Aloud Button (Need Internet)
+- Click on Read Aloud Button (Need Internet for good voices)
 
 ## Todo:
 
